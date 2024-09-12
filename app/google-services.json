@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "599027982955",
+    "project_id": "trilheiros-414c9",
+    "storage_bucket": "trilheiros-414c9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599027982955:android:5ac20334b24433567f472e",
+        "android_client_info": {
+          "package_name": "com.example.appm_trilheiros"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuBDmxv1mA-34LJX5PW-Ib-gYQC62eKOQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
