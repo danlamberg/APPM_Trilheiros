@@ -7,11 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appm_trilheiros.model.Produto
 
-@Preview
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaHome(onLogout: () -> Unit) {
     // Exemplo de lista de produtos
@@ -19,8 +18,12 @@ fun TelaHome(onLogout: () -> Unit) {
     var selectedProduto by remember { mutableStateOf<Produto?>(null) }
     var modelo by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Bem-vindo à Tela Inicial!")
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text("Bem-vindo à Tela Inicial!", style = MaterialTheme.typography.titleLarge)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -32,7 +35,7 @@ fun TelaHome(onLogout: () -> Unit) {
                         .clickable { selectedProduto = produto }
                         .padding(8.dp)
                 ) {
-                    Text(produto.modelo)
+                    Text(produto.modelo, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -48,31 +51,37 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = {
-            if (modelo.isNotEmpty()) {
-                produtos.add(Produto(produtos.size + 1, modelo))
-                modelo = ""
+        Button(
+            onClick = {
+                if (modelo.isNotEmpty()) {
+                    produtos.add(Produto(produtos.size + 1, modelo))
+                    modelo = ""
+                }
             }
-        }) {
+        ) {
             Text("Inserir")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = {
-            selectedProduto?.let { produto ->
-                produtos.remove(produto)
-                selectedProduto = null
+        Button(
+            onClick = {
+                selectedProduto?.let { produto ->
+                    produtos.remove(produto)
+                    selectedProduto = null
+                }
             }
-        }) {
+        ) {
             Text("Excluir")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = {
-            onLogout()
-        }) {
+        Button(
+            onClick = {
+                onLogout()
+            }
+        ) {
             Text("Sair")
         }
     }

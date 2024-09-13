@@ -7,9 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,32 +22,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.appm_trilheiros.TelaHome
+import com.example.appm_trilheiros.model.Produto
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
-
-// Importações do Firebase Authentication (comentadas)
-// import com.google.firebase.auth.FirebaseAuth
-// import com.google.firebase.auth.ktx.auth
-// import com.google.firebase.ktx.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
-
-    // Firebase Authentication desativado temporariamente
-    // private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Inicialização do Firebase comentada
-        // auth = Firebase.auth
-
         setContent {
             APPM_TrilheirosTheme {
                 val navController = rememberNavController()
-
-                // Passando o auth como parâmetro está desativado
-                // AppContent(navController = navController, auth = auth)
                 AppContent(navController = navController)
             }
         }
@@ -52,43 +44,45 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-// Função preparada para reativar Firebase
-// fun AppContent(navController: NavHostController, auth: FirebaseAuth) {
 fun AppContent(navController: NavHostController) {
-    // var isSignedIn by remember { mutableStateOf(auth.currentUser != null) }
     var isSignedIn by remember { mutableStateOf(false) }
 
-    // Lógica para atualizar o estado de autenticação
-    // LaunchedEffect(auth.currentUser) {
-    //     isSignedIn = auth.currentUser != null
-    // }
-
-    if (isSignedIn) {
-        TelaHome(onLogout = {
-            // auth.signOut() // Lógica para logout com Firebase
-            isSignedIn = false
-        })
-    } else {
-        NavHost(navController = navController, startDestination = "login") {
-            composable("login") {
-                // TelaLogin(navController, auth) // Firebase desativado
-                TelaLogin(navController)
-            }
-            composable("cadastro") {
-                // TelaCadastro(navController, auth) // Firebase desativado
-                TelaCadastro(navController)
-            }
+    NavHost(navController = navController, startDestination = if (isSignedIn) "tela_principal" else "login") {
+        composable("login") {
+            TelaLogin(
+                navController = navController,
+                onSignIn = {
+                    isSignedIn = true
+                }
+            )
+        }
+        composable("cadastro") {
+            TelaCadastro(
+                navController = navController,
+                onSignUp = {
+                    navController.navigate("login")
+                }
+            )
+        }
+        composable("tela_principal") {
+            TelaHome(onLogout = {
+                isSignedIn = false
+                navController.navigate("login") {
+                    // Limpar a pilha de navegação
+                    popUpTo("login") { inclusive = true }
+                }
+            })
         }
     }
 }
 
 @Composable
-// Função TelaLogin sem Firebase Authentication ativo
-// fun TelaLogin(navController: NavHostController, auth: FirebaseAuth) {
-fun TelaLogin(navController: NavHostController) {
+fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var mostrarErro by remember { mutableStateOf(false) }
+
+    val auth: FirebaseAuth = Firebase.auth
 
     Column(
         modifier = Modifier
@@ -115,16 +109,14 @@ fun TelaLogin(navController: NavHostController) {
 
         Button(
             onClick = {
-                // Lógica de autenticação com Firebase desativada
-                // auth.signInWithEmailAndPassword(email, senha)
-                //     .addOnCompleteListener { task ->
-                //         if (task.isSuccessful) {
-                //             mostrarErro = false
-                //             navController.navigate("home")
-                //         } else {
-                //             mostrarErro = true
-                //         }
-                //     }
+                auth.signInWithEmailAndPassword(email, senha)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            onSignIn()
+                        } else {
+                            mostrarErro = true
+                        }
+                    }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -152,13 +144,15 @@ fun TelaLogin(navController: NavHostController) {
 }
 
 @Composable
-// Função TelaCadastro sem Firebase Authentication ativo
-// fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
-fun TelaCadastro(navController: NavHostController) {
+fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
+    var nome by remember { mutableStateOf("") }
+    var sobrenome by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var senha by remember { mutableStateOf("") }
-    var mostrarErro by remember { mutableStateOf(false) }
-    var sucesso by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    val auth: FirebaseAuth = Firebase.auth
 
     Column(
         modifier = Modifier
@@ -167,54 +161,67 @@ fun TelaCadastro(navController: NavHostController) {
             .background(Color.White)
     ) {
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("E-mail") },
+            value = nome,
+            onValueChange = { nome = it },
+            label = { Text("Nome") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = senha,
-            onValueChange = { senha = it },
-            label = { Text("Senha") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
+            value = sobrenome,
+            onValueChange = { sobrenome = it },
+            label = { Text("Sobrenome") },
+            modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Senha") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                // Lógica de cadastro com Firebase desativada
-                // auth.createUserWithEmailAndPassword(email, senha)
-                //     .addOnCompleteListener { task ->
-                //         if (task.isSuccessful) {
-                //             sucesso = true
-                //             navController.navigate("home")
-                //         } else {
-                //             mostrarErro = true
-                //         }
-                //     }
-            },
-            modifier = Modifier.fillMaxWidth()
+                if (nome.isNotEmpty() && sobrenome.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                successMessage = "Cadastro bem-sucedido!"
+                                errorMessage = null
+                                onSignUp()
+                            } else {
+                                errorMessage = task.exception?.message
+                                successMessage = null
+                            }
+                        }
+                } else {
+                    errorMessage = "Por favor, preencha todos os campos."
+                }
+            }
         ) {
             Text("Cadastrar")
         }
 
-        if (mostrarErro) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Falha no cadastro.",
-                color = Color.Red
-            )
-        }
+        Spacer(modifier = Modifier.height(16.dp))
 
-        if (sucesso) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Cadastro realizado com sucesso!",
-                color = Color.Green
-            )
+        errorMessage?.let {
+            Text(text = it, color = Color.Red)
+        }
+        successMessage?.let {
+            Text(text = it, color = Color.Green)
         }
     }
 }

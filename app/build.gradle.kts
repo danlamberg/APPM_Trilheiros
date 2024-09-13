@@ -51,20 +51,30 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
+
+    // Dependências do Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom)) // Configura a BOM do Compose para gerenciar versões
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.firebase.common.ktx)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.androidx.navigation.compose)
+
+    // Dependências do Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation(libs.firebase.common.ktx)
+    implementation(libs.firebase.auth.ktx)
+
+    // Dependência para autenticação com Google
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.navigation.compose)
+
+    // Dependências para testes
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
