@@ -1,5 +1,6 @@
 package com.example.appm_trilheiros.model
 
-class Produto(var id: Int, var modelo: String){
-
-}
+data class Produto(
+    val id: Int,
+    var modelo: String
+)

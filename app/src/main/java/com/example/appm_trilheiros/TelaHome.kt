@@ -23,37 +23,14 @@ fun TelaHome(onLogout: () -> Unit) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Bem-vindo à Tela Inicial!", style = MaterialTheme.typography.titleLarge)
+        Text("Adicione ou edite um item:", style = MaterialTheme.typography.titleLarge)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
-            items(produtos) { produto ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { selectedProduto = produto }
-                        .padding(8.dp)
-                ) {
-                    Text(produto.modelo, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextField(
-            value = modelo,
-            onValueChange = { modelo = it },
-            label = { Text("Modelo") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // Botão de Inserir
         Button(
             onClick = {
-                if (modelo.isNotEmpty()) {
+                if (modelo.isNotEmpty() && selectedProduto == null) {
                     produtos.add(Produto(produtos.size + 1, modelo))
                     modelo = ""
                 }
@@ -64,11 +41,13 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Botão de Excluir
         Button(
             onClick = {
                 selectedProduto?.let { produto ->
                     produtos.remove(produto)
                     selectedProduto = null
+                    modelo = ""  // Limpa o campo de texto
                 }
             }
         ) {
@@ -77,12 +56,63 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Botão de Editar
         Button(
             onClick = {
-                onLogout()
+                selectedProduto?.let { produto ->
+                    val index = produtos.indexOf(produto)
+                    if (index != -1 && modelo.isNotEmpty()) {
+                        produtos[index] = produto.copy(modelo = modelo)  // Usa o método copy
+                        modelo = ""
+                        selectedProduto = null
+                    }
+                }
             }
         ) {
+            Text("Editar")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Botão de Logout
+        Button(onClick = { onLogout() }) {
             Text("Sair")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Campo de texto para inserir ou editar o modelo
+        TextField(
+            value = modelo,
+            onValueChange = { modelo = it },
+            label = { Text("Modelo") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Exibe o texto com o modelo do produto selecionado
+        selectedProduto?.let {
+            Text("Produto selecionado: ${it.modelo}", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Lista de produtos
+        LazyColumn {
+            items(produtos) { produto ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedProduto = produto
+                            modelo = produto.modelo  // Atualiza o campo de texto com o valor do produto
+                        }
+                        .padding(8.dp)
+                ) {
+                    Text(produto.modelo, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
     }
 }
