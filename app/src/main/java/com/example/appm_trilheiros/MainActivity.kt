@@ -6,28 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.integerResource
@@ -80,6 +62,9 @@ fun AppContent(navController: NavHostController) {
                     navController = navController,
                     onSignIn = {
                         isSignedIn = true
+                        navController.navigate("tela_principal") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 )
             }
@@ -87,7 +72,10 @@ fun AppContent(navController: NavHostController) {
                 TelaCadastro(
                     navController = navController,
                     onSignUp = {
-                        navController.navigate("tela_principal")
+                        isSignedIn = true
+                        navController.navigate("tela_principal") {
+                            popUpTo("cadastro") { inclusive = true }
+                        }
                     }
                 )
             }
@@ -95,7 +83,7 @@ fun AppContent(navController: NavHostController) {
                 TelaHome(onLogout = {
                     isSignedIn = false
                     navController.navigate("login") {
-                        popUpTo("login") { inclusive = false }
+                        popUpTo("tela_principal") { inclusive = false }
                     }
                 })
             }
@@ -106,19 +94,20 @@ fun AppContent(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar() {
+
     val fontWeight = FontWeight(integerResource(id = R.integer.peso))
 
     CenterAlignedTopAppBar(
         title = {
             Text(
                 text = stringResource(id = R.string.app_name),
-                fontSize = 20.sp,
+                fontSize = 20.sp, // Tamanho da fonte
                 fontWeight = fontWeight,
-                color = Color.White
+                color = Color.White // Cor do texto
             )
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.Black
+            containerColor = Color.Black // Cor de fundo da Top Bar
         ),
         modifier = Modifier.statusBarsPadding()
     )
