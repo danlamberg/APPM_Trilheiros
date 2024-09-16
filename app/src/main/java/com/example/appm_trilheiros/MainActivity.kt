@@ -9,15 +9,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,56 +41,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppContent(navController: NavHostController) {
     var isSignedIn by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        fontSize = 35.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = White
-                    )
-                },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Black)
+    NavHost(navController = navController, startDestination = if (isSignedIn) "tela_principal" else "login") {
+        composable("login") {
+            TelaLogin(
+                navController = navController,
+                onSignIn = {
+                    isSignedIn = true
+                }
             )
         }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = if (isSignedIn) "tela_principal" else "login",
-            Modifier.padding(paddingValues) // Aplicando paddingValues
-        ) {
-            composable("login") {
-                TelaLogin(
-                    navController = navController,
-                    onSignIn = {
-                        isSignedIn = true
-                    }
-                )
-            }
-            composable("cadastro") {
-                TelaCadastro(
-                    navController = navController,
-                    onSignUp = {
-                        navController.navigate("login")
-                    }
-                )
-            }
-            composable("tela_principal") {
-                TelaHome(onLogout = {
-                    isSignedIn = false
-                    navController.navigate("login") {
-                        // Limpar a pilha de navegação
-                        popUpTo("login") { inclusive = false }
-                    }
-                })
-            }
+        composable("cadastro") {
+            TelaCadastro(
+                navController = navController,
+                onSignUp = {
+                    navController.navigate("login")
+                }
+            )
+        }
+        composable("tela_principal") {
+            TelaHome(onLogout = {
+                isSignedIn = false
+                navController.navigate("login") {
+                    // Limpar a pilha de navegação
+                    popUpTo("login") { inclusive = false }
+                }
+            })
         }
     }
 }
@@ -110,7 +86,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = email,
@@ -141,16 +117,16 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
                     }
             },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Orange)
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
-            Text("Entrar", color = White)
+            Text("Entrar")
         }
 
         if (mostrarErro) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Falha na autenticação.",
-                color = Color.Red
+                color = Color.Red // Cor do texto de erro
             )
         }
 
@@ -158,7 +134,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
 
         Text(
             text = "Não tem uma conta? Cadastre-se",
-            color = Orange,
+            color = Orange, // Cor do texto clicável
             modifier = Modifier.clickable {
                 navController.navigate("cadastro")
             }
@@ -181,7 +157,7 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = nome,
@@ -234,18 +210,18 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
                     errorMessage = "Por favor, preencha todos os campos."
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Orange)
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
-            Text("Cadastrar", color = White)
+            Text("Cadastrar")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         errorMessage?.let {
-            Text(text = it, color = Color.Red)
+            Text(text = it, color = Color.Red) // Cor da mensagem de erro
         }
         successMessage?.let {
-            Text(text = it, color = Color.Green)
+            Text(text = it, color = Color.Green) // Cor da mensagem de sucesso
         }
     }
 }
