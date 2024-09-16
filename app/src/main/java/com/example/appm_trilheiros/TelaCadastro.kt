@@ -84,7 +84,7 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     successMessage = "Cadastro bem-sucedido!"
-                                    // Aqui você pode adicionar lógica para salvar o nome e sobrenome no Firebase Database, por exemplo
+
                                 } else {
                                     errorMessage = "Falha no cadastro."
                                 }

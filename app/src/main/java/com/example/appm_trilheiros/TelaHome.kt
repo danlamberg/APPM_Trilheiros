@@ -85,7 +85,7 @@ fun TelaHome(onLogout: () -> Unit) {
         TextField(
             value = modelo,
             onValueChange = { modelo = it },
-            label = { Text("Modelo") },
+            label = { Text("Item") },
             modifier = Modifier.fillMaxWidth()
         )
 

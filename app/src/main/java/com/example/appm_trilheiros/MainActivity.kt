@@ -9,27 +9,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.appm_trilheiros.model.Produto
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
+import com.example.appm_trilheiros.ui.theme.Black
+import com.example.appm_trilheiros.ui.theme.Orange
+import com.example.appm_trilheiros.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -69,7 +67,7 @@ fun AppContent(navController: NavHostController) {
                 isSignedIn = false
                 navController.navigate("login") {
                     // Limpar a pilha de navegação
-                    popUpTo("login") { inclusive = true }
+                    popUpTo("login") { inclusive = false }
                 }
             })
         }
@@ -88,7 +86,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = email,
@@ -118,7 +116,8 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
                         }
                     }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
             Text("Entrar")
         }
@@ -127,7 +126,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Falha na autenticação.",
-                color = Color.Red
+                color = Color.Red // Cor do texto de erro
             )
         }
 
@@ -135,7 +134,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
 
         Text(
             text = "Não tem uma conta? Cadastre-se",
-            color = Color.Blue,
+            color = Orange, // Cor do texto clicável
             modifier = Modifier.clickable {
                 navController.navigate("cadastro")
             }
@@ -158,7 +157,7 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = nome,
@@ -210,7 +209,8 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
                 } else {
                     errorMessage = "Por favor, preencha todos os campos."
                 }
-            }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
             Text("Cadastrar")
         }
@@ -218,10 +218,10 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         errorMessage?.let {
-            Text(text = it, color = Color.Red)
+            Text(text = it, color = Color.Red) // Cor da mensagem de erro
         }
         successMessage?.let {
-            Text(text = it, color = Color.Green)
+            Text(text = it, color = Color.Green) // Cor da mensagem de sucesso
         }
     }
 }
