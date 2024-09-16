@@ -13,7 +13,7 @@ import com.example.appm_trilheiros.model.Produto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaHome(onLogout: () -> Unit) {
-    // Exemplo de lista de produtos
+
     val produtos = remember { mutableStateListOf<Produto>() }
     var selectedProduto by remember { mutableStateOf<Produto?>(null) }
     var modelo by remember { mutableStateOf("") }
@@ -27,7 +27,7 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão de Inserir
+
         Button(
             onClick = {
                 if (modelo.isNotEmpty() && selectedProduto == null) {
@@ -47,7 +47,7 @@ fun TelaHome(onLogout: () -> Unit) {
                 selectedProduto?.let { produto ->
                     produtos.remove(produto)
                     selectedProduto = null
-                    modelo = ""  // Limpa o campo de texto
+                    modelo = ""
                 }
             }
         ) {
@@ -62,7 +62,7 @@ fun TelaHome(onLogout: () -> Unit) {
                 selectedProduto?.let { produto ->
                     val index = produtos.indexOf(produto)
                     if (index != -1 && modelo.isNotEmpty()) {
-                        produtos[index] = produto.copy(modelo = modelo)  // Usa o método copy
+                        produtos[index] = produto.copy(modelo = modelo)
                         modelo = ""
                         selectedProduto = null
                     }
@@ -81,7 +81,7 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Campo de texto para inserir ou editar o modelo
+
         TextField(
             value = modelo,
             onValueChange = { modelo = it },
@@ -91,7 +91,7 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Exibe o texto com o modelo do produto selecionado
+
         selectedProduto?.let {
             Text("Produto selecionado: ${it.modelo}", style = MaterialTheme.typography.bodyMedium)
         }
@@ -106,7 +106,7 @@ fun TelaHome(onLogout: () -> Unit) {
                         .fillMaxWidth()
                         .clickable {
                             selectedProduto = produto
-                            modelo = produto.modelo  // Atualiza o campo de texto com o valor do produto
+                            modelo = produto.modelo
                         }
                         .padding(8.dp)
                 ) {

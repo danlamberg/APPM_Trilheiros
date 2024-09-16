@@ -1,22 +1,20 @@
-package com.example.appm_trilheiros
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
-
-    val auth = Firebase.auth
 
     var nome by remember { mutableStateOf("") }
     var sobrenome by remember { mutableStateOf("") }
@@ -24,6 +22,17 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
+
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+
+    val focusRequester = remember { FocusRequester() }
+
+
+    LaunchedEffect(Unit) {
+        keyboardController?.hide()
+    }
 
     Scaffold(
         topBar = {
@@ -45,7 +54,14 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                     value = nome,
                     onValueChange = { nome = it },
                     label = { Text("Nome") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                keyboardController?.hide()
+                            }
+                        }
+                        .focusRequester(focusRequester)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -54,37 +70,61 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                     value = sobrenome,
                     onValueChange = { sobrenome = it },
                     label = { Text("Sobrenome") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                keyboardController?.hide()
+                            }
+                        }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Campo de Email
+
                 TextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                keyboardController?.hide()
+                            }
+                        }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Campo de Senha
+
                 TextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Senha") },
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                keyboardController?.hide()
+                            }
+                        }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botão de Cadastro
+
                 Button(
                     onClick = {
+                        // Fechar o teclado quando o botão for pressionado
+                        keyboardController?.hide()
+
                         auth.createUserWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     successMessage = "Cadastro bem-sucedido!"
+                                    navController.navigate("tela_principal") {
 
+                                        popUpTo("cadastro") { inclusive = true }
+                                    }
                                 } else {
                                     errorMessage = "Falha no cadastro."
                                 }
