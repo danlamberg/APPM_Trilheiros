@@ -9,12 +9,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,35 +44,56 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppContent(navController: NavHostController) {
     var isSignedIn by remember { mutableStateOf(false) }
 
-    NavHost(navController = navController, startDestination = if (isSignedIn) "tela_principal" else "login") {
-        composable("login") {
-            TelaLogin(
-                navController = navController,
-                onSignIn = {
-                    isSignedIn = true
-                }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.app_name), // Certifique-se de que este ID está correto
+                        fontSize = 35.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = White
+                    )
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Black) // Altere a cor de fundo se necessário
             )
         }
-        composable("cadastro") {
-            TelaCadastro(
-                navController = navController,
-                onSignUp = {
-                    navController.navigate("login")
-                }
-            )
-        }
-        composable("tela_principal") {
-            TelaHome(onLogout = {
-                isSignedIn = false
-                navController.navigate("login") {
-                    // Limpar a pilha de navegação
-                    popUpTo("login") { inclusive = false }
-                }
-            })
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = if (isSignedIn) "tela_principal" else "login",
+            Modifier.padding(paddingValues) // Aplicando paddingValues
+        ) {
+            composable("login") {
+                TelaLogin(
+                    navController = navController,
+                    onSignIn = {
+                        isSignedIn = true
+                    }
+                )
+            }
+            composable("cadastro") {
+                TelaCadastro(
+                    navController = navController,
+                    onSignUp = {
+                        navController.navigate("login")
+                    }
+                )
+            }
+            composable("tela_principal") {
+                TelaHome(onLogout = {
+                    isSignedIn = false
+                    navController.navigate("login") {
+                        // Limpar a pilha de navegação
+                        popUpTo("login") { inclusive = false }
+                    }
+                })
+            }
         }
     }
 }
@@ -119,7 +143,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
-            Text("Entrar")
+            Text("Entrar", color = White) // Cor do texto no botão
         }
 
         if (mostrarErro) {
@@ -210,18 +234,18 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
                     errorMessage = "Por favor, preencha todos os campos."
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
+            colors = ButtonDefaults.buttonColors(containerColor = Orange)
         ) {
-            Text("Cadastrar")
+            Text("Cadastrar", color = White) // Cor do texto no botão
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         errorMessage?.let {
-            Text(text = it, color = Color.Red) // Cor da mensagem de erro
+            Text(text = it, color = Color.Red)
         }
         successMessage?.let {
-            Text(text = it, color = Color.Green) // Cor da mensagem de sucesso
+            Text(text = it, color = Color.Green)
         }
     }
 }
