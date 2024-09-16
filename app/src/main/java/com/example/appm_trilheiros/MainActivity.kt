@@ -6,42 +6,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.integerResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
+import com.example.appm_trilheiros.ui.theme.Black
 import com.example.appm_trilheiros.ui.theme.Orange
+import com.example.appm_trilheiros.ui.theme.White
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -64,64 +45,33 @@ class MainActivity : ComponentActivity() {
 fun AppContent(navController: NavHostController) {
     var isSignedIn by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopBar()
-        },
-        contentWindowInsets = WindowInsets(0.dp)
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = if (isSignedIn) "tela_principal" else "login",
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable("login") {
-                TelaLogin(
-                    navController = navController,
-                    onSignIn = {
-                        isSignedIn = true
-                    }
-                )
-            }
-            composable("cadastro") {
-                TelaCadastro(
-                    navController = navController,
-                    onSignUp = {
-                        navController.navigate("tela_principal")
-                    }
-                )
-            }
-            composable("tela_principal") {
-                TelaHome(onLogout = {
-                    isSignedIn = false
-                    navController.navigate("login") {
-                        popUpTo("login") { inclusive = false }
-                    }
-                })
-            }
+    NavHost(navController = navController, startDestination = if (isSignedIn) "tela_principal" else "login") {
+        composable("login") {
+            TelaLogin(
+                navController = navController,
+                onSignIn = {
+                    isSignedIn = true
+                }
+            )
+        }
+        composable("cadastro") {
+            TelaCadastro(
+                navController = navController,
+                onSignUp = {
+                    navController.navigate("login")
+                }
+            )
+        }
+        composable("tela_principal") {
+            TelaHome(onLogout = {
+                isSignedIn = false
+                navController.navigate("login") {
+                    // Limpar a pilha de navegação
+                    popUpTo("login") { inclusive = false }
+                }
+            })
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TopBar() {
-    val fontWeight = FontWeight(integerResource(id = R.integer.peso))
-
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = stringResource(id = R.string.app_name),
-                fontSize = 20.sp,
-                fontWeight = fontWeight,
-                color = Color.White
-            )
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.Black
-        ),
-        modifier = Modifier.statusBarsPadding()
-    )
 }
 
 @Composable
@@ -136,7 +86,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = email,
@@ -167,7 +117,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
                     }
             },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Orange)
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
             Text("Entrar")
         }
@@ -176,7 +126,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Falha na autenticação.",
-                color = Color.Red
+                color = Color.Red // Cor do texto de erro
             )
         }
 
@@ -184,7 +134,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
 
         Text(
             text = "Não tem uma conta? Cadastre-se",
-            color = Orange,
+            color = Orange, // Cor do texto clicável
             modifier = Modifier.clickable {
                 navController.navigate("cadastro")
             }
@@ -207,7 +157,7 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background) // Usando cor de fundo do tema
     ) {
         OutlinedTextField(
             value = nome,
@@ -260,7 +210,7 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
                     errorMessage = "Por favor, preencha todos os campos."
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Orange)
+            colors = ButtonDefaults.buttonColors(containerColor = Orange) // Cor do botão
         ) {
             Text("Cadastrar")
         }
@@ -268,10 +218,10 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         errorMessage?.let {
-            Text(text = it, color = Color.Red)
+            Text(text = it, color = Color.Red) // Cor da mensagem de erro
         }
         successMessage?.let {
-            Text(text = it, color = Color.Green)
+            Text(text = it, color = Color.Green) // Cor da mensagem de sucesso
         }
     }
 }
