@@ -6,10 +6,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.integerResource
@@ -50,21 +68,18 @@ fun AppContent(navController: NavHostController) {
         topBar = {
             TopBar()
         },
-        contentWindowInsets = WindowInsets(0.dp) // Ajusta o conteúdo para não cobrir a status bar
+        contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = if (isSignedIn) "tela_principal" else "login",
-            modifier = Modifier.padding(paddingValues) // Ajusta o padding do conteúdo
+            modifier = Modifier.padding(paddingValues)
         ) {
             composable("login") {
                 TelaLogin(
                     navController = navController,
                     onSignIn = {
                         isSignedIn = true
-                        navController.navigate("tela_principal") {
-                            popUpTo("login") { inclusive = true }
-                        }
                     }
                 )
             }
@@ -72,10 +87,7 @@ fun AppContent(navController: NavHostController) {
                 TelaCadastro(
                     navController = navController,
                     onSignUp = {
-                        isSignedIn = true
-                        navController.navigate("tela_principal") {
-                            popUpTo("cadastro") { inclusive = true }
-                        }
+                        navController.navigate("tela_principal")
                     }
                 )
             }
@@ -83,7 +95,7 @@ fun AppContent(navController: NavHostController) {
                 TelaHome(onLogout = {
                     isSignedIn = false
                     navController.navigate("login") {
-                        popUpTo("tela_principal") { inclusive = false }
+                        popUpTo("login") { inclusive = false }
                     }
                 })
             }
@@ -94,22 +106,21 @@ fun AppContent(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar() {
-    // Obtenha o peso da fonte a partir de um recurso, se necessário
     val fontWeight = FontWeight(integerResource(id = R.integer.peso))
 
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = stringResource(id = R.string.app_name), // Nome do app
-                fontSize = 20.sp, // Tamanho da fonte
+                text = stringResource(id = R.string.app_name),
+                fontSize = 20.sp,
                 fontWeight = fontWeight,
-                color = Color.White // Cor do texto
+                color = Color.White
             )
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.Black // Cor de fundo da Top Bar
+            containerColor = Color.Black
         ),
-        modifier = Modifier.statusBarsPadding() // Ajusta o padding para não cobrir a status bar
+        modifier = Modifier.statusBarsPadding()
     )
 }
 
