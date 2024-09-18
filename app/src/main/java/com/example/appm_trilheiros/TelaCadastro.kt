@@ -10,12 +10,13 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.appm_trilheiros.ui.theme.Orange
 import com.google.firebase.auth.FirebaseAuth
+import android.util.Patterns
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
-
+fun TelaCadastro(navController: NavHostController) {
     var nome by remember { mutableStateOf("") }
     var sobrenome by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -23,13 +24,11 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
-
+    val auth = FirebaseAuth.getInstance()
     val keyboardController = LocalSoftwareKeyboardController.current
-
-
     val focusRequester = remember { FocusRequester() }
 
-
+    // Close keyboard when navigating
     LaunchedEffect(Unit) {
         keyboardController?.hide()
     }
@@ -80,11 +79,12 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-
+                // Campo de Email
                 TextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
+                    isError = !Patterns.EMAIL_ADDRESS.matcher(email).matches(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .onFocusChanged { focusState ->
@@ -95,7 +95,7 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-
+                // Campo de Senha
                 TextField(
                     value = password,
                     onValueChange = { password = it },
@@ -111,25 +111,33 @@ fun TelaCadastro(navController: NavHostController, auth: FirebaseAuth) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-
+                // Botão de Cadastro
                 Button(
                     onClick = {
-                        // Fechar o teclado quando o botão for pressionado
                         keyboardController?.hide()
 
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    successMessage = "Cadastro bem-sucedido!"
-                                    navController.navigate("tela_principal") {
+                        if (nome.isEmpty() || sobrenome.isEmpty() || email.isEmpty() || password.isEmpty()) {
+                            errorMessage = "Por favor, preencha todos os campos."
+                        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                            errorMessage = "Formato de e-mail inválido."
+                        } else {
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        successMessage = "Cadastro bem-sucedido!"
+                                        errorMessage = null
 
-                                        popUpTo("cadastro") { inclusive = true }
+                                        // Navegar para a TelaHome e remover a TelaCadastro da pilha de navegação
+                                        navController.navigate("tela_principal") {
+                                            popUpTo("cadastro") { inclusive = true }
+                                        }
+                                    } else {
+                                        errorMessage = "Falha no cadastro. ${task.exception?.localizedMessage}"
                                     }
-                                } else {
-                                    errorMessage = "Falha no cadastro."
                                 }
-                            }
-                    }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange)
                 ) {
                     Text("Cadastrar")
                 }
