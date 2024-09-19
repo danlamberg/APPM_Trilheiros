@@ -1,5 +1,6 @@
 package com.example.appm_trilheiros
 
+import TelaHome
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

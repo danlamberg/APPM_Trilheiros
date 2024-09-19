@@ -1,5 +1,4 @@
-package com.example.appm_trilheiros
-
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +7,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.appm_trilheiros.model.Produto
 import kotlinx.coroutines.launch
@@ -23,6 +23,9 @@ fun TelaHome(onLogout: () -> Unit) {
     // Estado da lista para controlar a rolagem
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Obtenha o contexto
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -102,7 +105,25 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Mostrar o produto selecionado
+
+        Button(
+            onClick = {
+                val produtosList = produtos.joinToString(separator = "\n") { it.modelo }
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, "*Lista de Itens de Montanha:*\n$produtosList")
+                    type = "text/plain"
+                }
+                val chooser = Intent.createChooser(shareIntent, "Compartilhar via")
+                context.startActivity(chooser)
+            }
+        ) {
+            Text("Compartilhar Lista")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
         selectedProduto?.let {
             Text("Produto selecionado: ${it.modelo}", style = MaterialTheme.typography.bodyMedium)
         }
