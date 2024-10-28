@@ -8,10 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Modifier // Importando o Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
@@ -23,6 +22,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.appm_trilheiros.dados.ItemDao
+import com.example.appm_trilheiros.dados.ItemDB
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
 import com.example.appm_trilheiros.ui.theme.Orange
 import com.google.firebase.auth.FirebaseAuth
@@ -30,28 +31,37 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
+    private lateinit var itemDao: ItemDao
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+
+        val db = abrirBanco()
+        itemDao = db.getItemDao()
+
         setContent {
             APPM_TrilheirosTheme {
                 val navController = rememberNavController()
-                AppContent(navController = navController)
+                AppContent(navController = navController, itemDao = itemDao)
             }
         }
+    }
+
+   private fun abrirBanco(): ItemDB {
+        return ItemDB.abrirBanco(this)
     }
 }
 
 @Composable
-fun AppContent(navController: NavHostController) {
+fun AppContent(navController: NavHostController, itemDao: ItemDao) {
     var isSignedIn by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopBar()
-        },
-        contentWindowInsets = WindowInsets(0.dp)
+        }
     ) { paddingValues ->
         NavHost(
             navController = navController,
@@ -81,12 +91,15 @@ fun AppContent(navController: NavHostController) {
                 )
             }
             composable("tela_principal") {
-                TelaHome(onLogout = {
-                    isSignedIn = false
-                    navController.navigate("login") {
-                        popUpTo("tela_principal") { inclusive = false }
-                    }
-                })
+                TelaHome(
+                    onLogout = {
+                        isSignedIn = false
+                        navController.navigate("login") {
+                            popUpTo("tela_principal") { inclusive = false }
+                        }
+                    },
+                    itemDao = itemDao // Passando itemDao para TelaHome
+                )
             }
         }
     }
@@ -95,7 +108,6 @@ fun AppContent(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar() {
-
     val fontWeight = FontWeight(integerResource(id = R.integer.peso))
 
     CenterAlignedTopAppBar(

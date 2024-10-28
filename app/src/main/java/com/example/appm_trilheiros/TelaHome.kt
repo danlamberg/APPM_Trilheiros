@@ -9,23 +9,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.appm_trilheiros.model.Produto
+import com.example.appm_trilheiros.dados.Item
+import com.example.appm_trilheiros.dados.ItemDao
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaHome(onLogout: () -> Unit) {
+fun TelaHome(
+    onLogout: () -> Unit,
+    itemDao: ItemDao
+) {
+    // Estado para armazenar a lista de itens do banco de dados
+    var items by remember { mutableStateOf(listOf<Item>()) }
+    var selectedItem by remember { mutableStateOf<Item?>(null) }
+    var descricao by remember { mutableStateOf("") }
 
-    val produtos = remember { mutableStateListOf<Produto>() }
-    var selectedProduto by remember { mutableStateOf<Produto?>(null) }
-    var modelo by remember { mutableStateOf("") }
-
-    // Estado da lista para controlar a rolagem
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     // Obtenha o contexto
     val context = LocalContext.current
+
+    // Coletar itens do banco de dados usando Flow
+    LaunchedEffect(Unit) {
+        // Coleta o fluxo de itens e atualiza o estado da lista
+        itemDao.listarFlow().collect { itemList ->
+            items = itemList
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -39,14 +51,12 @@ fun TelaHome(onLogout: () -> Unit) {
         // Botão de Inserir
         Button(
             onClick = {
-                if (modelo.isNotEmpty() && selectedProduto == null) {
-                    produtos.add(Produto(produtos.size + 1, modelo))
-                    modelo = ""
-
-                    // Rolar até o último item adicionado
+                if (descricao.isNotEmpty() && selectedItem == null) {
+                    val newItem = Item(descricao = descricao)
                     coroutineScope.launch {
-                        listState.animateScrollToItem(produtos.size - 1)
+                        itemDao.gravar(newItem) // Insere o novo item no banco de dados
                     }
+                    descricao = "" // Limpa o campo de entrada
                 }
             }
         ) {
@@ -58,10 +68,12 @@ fun TelaHome(onLogout: () -> Unit) {
         // Botão de Excluir
         Button(
             onClick = {
-                selectedProduto?.let { produto ->
-                    produtos.remove(produto)
-                    selectedProduto = null
-                    modelo = ""
+                selectedItem?.let { item ->
+                    coroutineScope.launch {
+                        itemDao.excluir(item) // Remove o item do banco de dados
+                    }
+                    selectedItem = null
+                    descricao = ""
                 }
             }
         ) {
@@ -73,12 +85,14 @@ fun TelaHome(onLogout: () -> Unit) {
         // Botão de Editar
         Button(
             onClick = {
-                selectedProduto?.let { produto ->
-                    val index = produtos.indexOf(produto)
-                    if (index != -1 && modelo.isNotEmpty()) {
-                        produtos[index] = produto.copy(modelo = modelo)
-                        modelo = ""
-                        selectedProduto = null
+                selectedItem?.let { item ->
+                    if (descricao.isNotEmpty()) {
+                        val updatedItem = item.copy(descricao = descricao)
+                        coroutineScope.launch {
+                            itemDao.gravar(updatedItem) // Atualiza o item no banco de dados (Upsert)
+                        }
+                        descricao = ""
+                        selectedItem = null
                     }
                 }
             }
@@ -95,23 +109,23 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Campo de texto para entrada de produto
+        // Campo de texto para entrada da descrição do item
         TextField(
-            value = modelo,
-            onValueChange = { modelo = it },
-            label = { Text("Item") },
+            value = descricao,
+            onValueChange = { descricao = it },
+            label = { Text("Descrição do Item") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-
+        // Botão para compartilhar a lista de itens
         Button(
             onClick = {
-                val produtosList = produtos.joinToString(separator = "\n") { it.modelo }
+                val itemListString = items.joinToString(separator = "\n") { it.descricao }
                 val shareIntent = Intent().apply {
                     action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, "*Lista de Itens de Montanha:*\n$produtosList")
+                    putExtra(Intent.EXTRA_TEXT, "*Lista de Itens de Montanha:*\n$itemListString")
                     type = "text/plain"
                 }
                 val chooser = Intent.createChooser(shareIntent, "Compartilhar via")
@@ -123,26 +137,25 @@ fun TelaHome(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-
-        selectedProduto?.let {
-            Text("Produto selecionado: ${it.modelo}", style = MaterialTheme.typography.bodyMedium)
+        selectedItem?.let {
+            Text("Item selecionado: ${it.descricao}", style = MaterialTheme.typography.bodyMedium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de produtos com gerenciamento de rolagem
+        // Lista de itens com gerenciamento de rolagem
         LazyColumn(state = listState) {
-            items(produtos) { produto ->
+            items(items) { item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            selectedProduto = produto
-                            modelo = produto.modelo
+                            selectedItem = item
+                            descricao = item.descricao
                         }
                         .padding(8.dp)
                 ) {
-                    Text(produto.modelo, style = MaterialTheme.typography.bodyMedium)
+                    Text(item.descricao, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
