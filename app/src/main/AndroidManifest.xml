@@ -13,7 +13,7 @@
         android:theme="@style/Theme.APPM_Trilheiros"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".views.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.APPM_Trilheiros">
             <intent-filter>

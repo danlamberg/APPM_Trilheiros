@@ -1,4 +1,4 @@
-package com.example.appm_trilheiros
+package com.example.appm_trilheiros.views
 
 import TelaHome
 import android.os.Bundle
@@ -22,6 +22,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.appm_trilheiros.R
 import com.example.appm_trilheiros.dados.ItemDao
 import com.example.appm_trilheiros.dados.ItemDB
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
@@ -98,7 +99,7 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
                             popUpTo("tela_principal") { inclusive = false }
                         }
                     },
-                    itemDao = itemDao // Passando itemDao para TelaHome
+                    itemDao = itemDao
                 )
             }
         }
@@ -114,13 +115,13 @@ fun TopBar() {
         title = {
             Text(
                 text = stringResource(id = R.string.app_name),
-                fontSize = 20.sp, // Tamanho da fonte
+                fontSize = 20.sp,
                 fontWeight = fontWeight,
                 color = Color.White // Cor do texto
             )
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.Black // Cor de fundo da Top Bar
+            containerColor = Color.Black
         ),
         modifier = Modifier.statusBarsPadding()
     )

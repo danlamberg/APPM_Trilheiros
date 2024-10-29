@@ -11,7 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.appm_trilheiros.dados.Item
 import com.example.appm_trilheiros.dados.ItemDao
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,7 +19,7 @@ fun TelaHome(
     onLogout: () -> Unit,
     itemDao: ItemDao
 ) {
-    // Estado para armazenar a lista de itens do banco de dados
+
     var items by remember { mutableStateOf(listOf<Item>()) }
     var selectedItem by remember { mutableStateOf<Item?>(null) }
     var descricao by remember { mutableStateOf("") }
@@ -28,12 +27,11 @@ fun TelaHome(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Obtenha o contexto
+
     val context = LocalContext.current
 
-    // Coletar itens do banco de dados usando Flow
     LaunchedEffect(Unit) {
-        // Coleta o fluxo de itens e atualiza o estado da lista
+
         itemDao.listarFlow().collect { itemList ->
             items = itemList
         }
@@ -48,15 +46,14 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão de Inserir
         Button(
             onClick = {
                 if (descricao.isNotEmpty() && selectedItem == null) {
                     val newItem = Item(descricao = descricao)
                     coroutineScope.launch {
-                        itemDao.gravar(newItem) // Insere o novo item no banco de dados
+                        itemDao.gravar(newItem)
                     }
-                    descricao = "" // Limpa o campo de entrada
+                    descricao = ""
                 }
             }
         ) {
@@ -65,12 +62,12 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botão de Excluir
+
         Button(
             onClick = {
                 selectedItem?.let { item ->
                     coroutineScope.launch {
-                        itemDao.excluir(item) // Remove o item do banco de dados
+                        itemDao.excluir(item)
                     }
                     selectedItem = null
                     descricao = ""
@@ -82,14 +79,13 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botão de Editar
         Button(
             onClick = {
                 selectedItem?.let { item ->
                     if (descricao.isNotEmpty()) {
                         val updatedItem = item.copy(descricao = descricao)
                         coroutineScope.launch {
-                            itemDao.gravar(updatedItem) // Atualiza o item no banco de dados (Upsert)
+                            itemDao.gravar(updatedItem)
                         }
                         descricao = ""
                         selectedItem = null
@@ -102,14 +98,12 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botão de Logout
         Button(onClick = { onLogout() }) {
             Text("Sair")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Campo de texto para entrada da descrição do item
         TextField(
             value = descricao,
             onValueChange = { descricao = it },
@@ -119,7 +113,6 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão para compartilhar a lista de itens
         Button(
             onClick = {
                 val itemListString = items.joinToString(separator = "\n") { it.descricao }
@@ -143,7 +136,7 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de itens com gerenciamento de rolagem
+
         LazyColumn(state = listState) {
             items(items) { item ->
                 Row(

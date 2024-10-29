@@ -28,7 +28,6 @@ fun TelaCadastro(navController: NavHostController) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
-    // Close keyboard when navigating
     LaunchedEffect(Unit) {
         keyboardController?.hide()
     }
@@ -79,7 +78,6 @@ fun TelaCadastro(navController: NavHostController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Campo de Email
                 TextField(
                     value = email,
                     onValueChange = { email = it },
@@ -95,7 +93,6 @@ fun TelaCadastro(navController: NavHostController) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Campo de Senha
                 TextField(
                     value = password,
                     onValueChange = { password = it },
@@ -111,7 +108,6 @@ fun TelaCadastro(navController: NavHostController) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botão de Cadastro
                 Button(
                     onClick = {
                         keyboardController?.hide()
@@ -142,7 +138,6 @@ fun TelaCadastro(navController: NavHostController) {
                     Text("Cadastrar")
                 }
 
-                // Mensagens de erro ou sucesso
                 Spacer(modifier = Modifier.height(16.dp))
                 errorMessage?.let {
                     Text(text = it, color = MaterialTheme.colorScheme.error)
