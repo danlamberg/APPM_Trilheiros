@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.appm_trilheiros.dados.Item
 import com.example.appm_trilheiros.dados.ItemDao
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -19,21 +20,21 @@ fun TelaHome(
     onLogout: () -> Unit,
     itemDao: ItemDao
 ) {
-
     var items by remember { mutableStateOf(listOf<Item>()) }
     var selectedItem by remember { mutableStateOf<Item?>(null) }
     var descricao by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-
-
     val context = LocalContext.current
 
+    // Coleta de itens do banco de dados para o usuário atual
     LaunchedEffect(Unit) {
-
-        itemDao.listarFlow().collect { itemList ->
-            items = itemList
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            itemDao.listarFlowPorUsuario(userId).collect { itemList ->
+                items = itemList
+            }
         }
     }
 
@@ -46,14 +47,20 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Botão para inserir um novo item
         Button(
             onClick = {
                 if (descricao.isNotEmpty() && selectedItem == null) {
-                    val newItem = Item(descricao = descricao)
-                    coroutineScope.launch {
-                        itemDao.gravar(newItem)
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid // Obtém o ID do usuário atual
+                    if (userId != null) { // Verifica se o userId não é nulo
+                        val newItem = Item(descricao = descricao, userId = userId) // Adiciona o userId
+                        coroutineScope.launch {
+                            itemDao.gravar(newItem)
+                        }
+                        descricao = "" // Limpa o campo de descrição
+                    } else {
+                        // Aqui você pode adicionar uma mensagem de erro informando que o usuário não está autenticado
                     }
-                    descricao = ""
                 }
             }
         ) {
@@ -62,7 +69,7 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-
+        // Botão para excluir o item selecionado
         Button(
             onClick = {
                 selectedItem?.let { item ->
@@ -70,7 +77,7 @@ fun TelaHome(
                         itemDao.excluir(item)
                     }
                     selectedItem = null
-                    descricao = ""
+                    descricao = "" // Limpa o campo de descrição
                 }
             }
         ) {
@@ -79,15 +86,16 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Botão para editar o item selecionado
         Button(
             onClick = {
                 selectedItem?.let { item ->
                     if (descricao.isNotEmpty()) {
-                        val updatedItem = item.copy(descricao = descricao)
+                        val updatedItem = item.copy(descricao = descricao) // Atualiza a descrição do item
                         coroutineScope.launch {
-                            itemDao.gravar(updatedItem)
+                            itemDao.gravar(updatedItem) // Gravar o item atualizado
                         }
-                        descricao = ""
+                        descricao = "" // Limpa o campo de descrição
                         selectedItem = null
                     }
                 }
@@ -98,12 +106,14 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Botão para sair da tela
         Button(onClick = { onLogout() }) {
             Text("Sair")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Campo de texto para a descrição do item
         TextField(
             value = descricao,
             onValueChange = { descricao = it },
@@ -113,6 +123,7 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Botão para compartilhar a lista de itens
         Button(
             onClick = {
                 val itemListString = items.joinToString(separator = "\n") { it.descricao }
@@ -130,21 +141,22 @@ fun TelaHome(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Exibe o item selecionado
         selectedItem?.let {
             Text("Item selecionado: ${it.descricao}", style = MaterialTheme.typography.bodyMedium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-
+        // Lista de itens
         LazyColumn(state = listState) {
             items(items) { item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            selectedItem = item
-                            descricao = item.descricao
+                            selectedItem = item // Seleciona o item
+                            descricao = item.descricao // Atualiza o campo de descrição
                         }
                         .padding(8.dp)
                 ) {

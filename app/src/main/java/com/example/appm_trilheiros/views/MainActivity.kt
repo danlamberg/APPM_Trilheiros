@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-   private fun abrirBanco(): ItemDB {
+    private fun abrirBanco(): ItemDB {
         return ItemDB.abrirBanco(this)
     }
 }

@@ -15,6 +15,9 @@ interface ItemDao {
     @Query("SELECT * FROM tab_itens WHERE id = :idx")
     suspend fun buscarPorId(idx: Int): Item
 
+    @Query("SELECT * FROM tab_itens WHERE userId = :userId")
+    fun listarFlowPorUsuario(userId: String): Flow<List<Item>>
+
     @Upsert
     suspend fun gravar(item: Item)
 
