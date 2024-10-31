@@ -1,6 +1,5 @@
 package com.example.appm_trilheiros.views
 
-import TelaHome
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,7 +36,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
 
         val db = abrirBanco()
         itemDao = db.getItemDao()
@@ -99,7 +97,8 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
                             popUpTo("tela_principal") { inclusive = false }
                         }
                     },
-                    itemDao = itemDao
+                    itemDao = itemDao,
+                    navController = navController // Adicione o navController aqui
                 )
             }
         }

@@ -1,3 +1,5 @@
+package com.example.appm_trilheiros.views
+
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -6,9 +8,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.appm_trilheiros.dados.Item
 import com.example.appm_trilheiros.dados.ItemDao
 import com.google.firebase.auth.FirebaseAuth
@@ -18,11 +22,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun TelaHome(
     onLogout: () -> Unit,
-    itemDao: ItemDao
+    itemDao: ItemDao,
+    navController: NavController // NavController para navegação
 ) {
     var items by remember { mutableStateOf(listOf<Item>()) }
     var selectedItem by remember { mutableStateOf<Item?>(null) }
     var descricao by remember { mutableStateOf("") }
+    var expandedActions by remember { mutableStateOf(false) } // Estado para controlar a visibilidade dos botões de ação
+    var expandedProfileOptions by remember { mutableStateOf(false) } // Estado para controlar a visibilidade das opções de perfil
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -38,129 +45,162 @@ fun TelaHome(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Adicione ou edite um item:", style = MaterialTheme.typography.titleLarge)
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Text("Adicione ou edite um item:", style = MaterialTheme.typography.titleLarge)
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão para inserir um novo item
-        Button(
-            onClick = {
-                if (descricao.isNotEmpty() && selectedItem == null) {
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid // Obtém o ID do usuário atual
-                    if (userId != null) { // Verifica se o userId não é nulo
-                        val newItem = Item(descricao = descricao, userId = userId) // Adiciona o userId
-                        coroutineScope.launch {
-                            itemDao.gravar(newItem)
-                        }
-                        descricao = "" // Limpa o campo de descrição
-                    } else {
-                        // Aqui você pode adicionar uma mensagem de erro informando que o usuário não está autenticado
+            // Campo de texto para descrição do item
+            TextField(
+                value = descricao,
+                onValueChange = { descricao = it },
+                label = { Text("Descrição do Item") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botão para alternar a exibição dos botões de ação
+            Button(
+                onClick = { expandedActions = !expandedActions },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (expandedActions) "Ocultar Ações" else "Mostrar Ações")
+            }
+
+            // Agrupando os botões de ações do item (Inserir, Excluir, Editar)
+            if (expandedActions) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            if (descricao.isNotEmpty() && selectedItem == null) {
+                                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                                if (userId != null) {
+                                    val newItem = Item(descricao = descricao, userId = userId)
+                                    coroutineScope.launch {
+                                        itemDao.gravar(newItem)
+                                    }
+                                    descricao = ""
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Inserir")
+                    }
+
+                    Button(
+                        onClick = {
+                            selectedItem?.let { item ->
+                                coroutineScope.launch {
+                                    itemDao.excluir(item)
+                                }
+                                selectedItem = null
+                                descricao = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Excluir")
+                    }
+
+                    Button(
+                        onClick = {
+                            selectedItem?.let { item ->
+                                if (descricao.isNotEmpty()) {
+                                    val updatedItem = item.copy(descricao = descricao)
+                                    coroutineScope.launch {
+                                        itemDao.gravar(updatedItem)
+                                    }
+                                    descricao = ""
+                                    selectedItem = null
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Editar")
                     }
                 }
             }
-        ) {
-            Text("Inserir")
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão para excluir o item selecionado
-        Button(
-            onClick = {
-                selectedItem?.let { item ->
-                    coroutineScope.launch {
-                        itemDao.excluir(item)
+            // Botão para alternar a exibição das opções de perfil
+            Button(
+                onClick = { expandedProfileOptions = !expandedProfileOptions },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (expandedProfileOptions) "Ocultar Opções de Perfil" else "Mostrar Opções de Perfil")
+            }
+
+            // Opções de perfil (Editar Perfil, Compartilhar Lista, Sair)
+            if (expandedProfileOptions) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            navController.navigate("editar_perfil") // Navegação para tela de edição de perfil
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Editar Perfil")
                     }
-                    selectedItem = null
-                    descricao = "" // Limpa o campo de descrição
-                }
-            }
-        ) {
-            Text("Excluir")
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val itemListString = items.joinToString(separator = "\n") { it.descricao }
+                            val shareIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, "*Lista de Itens de Montanha:*\n$itemListString")
+                                type = "text/plain"
+                            }
+                            val chooser = Intent.createChooser(shareIntent, "Compartilhar via")
+                            context.startActivity(chooser)
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Compartilhar Lista")
+                    }
 
-        // Botão para editar o item selecionado
-        Button(
-            onClick = {
-                selectedItem?.let { item ->
-                    if (descricao.isNotEmpty()) {
-                        val updatedItem = item.copy(descricao = descricao) // Atualiza a descrição do item
-                        coroutineScope.launch {
-                            itemDao.gravar(updatedItem) // Gravar o item atualizado
-                        }
-                        descricao = "" // Limpa o campo de descrição
-                        selectedItem = null
+                    Button(
+                        onClick = { onLogout() },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Text("Sair")
                     }
                 }
             }
-        ) {
-            Text("Editar")
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão para sair da tela
-        Button(onClick = { onLogout() }) {
-            Text("Sair")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo de texto para a descrição do item
-        TextField(
-            value = descricao,
-            onValueChange = { descricao = it },
-            label = { Text("Descrição do Item") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Botão para compartilhar a lista de itens
-        Button(
-            onClick = {
-                val itemListString = items.joinToString(separator = "\n") { it.descricao }
-                val shareIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, "*Lista de Itens de Montanha:*\n$itemListString")
-                    type = "text/plain"
-                }
-                val chooser = Intent.createChooser(shareIntent, "Compartilhar via")
-                context.startActivity(chooser)
+            // Mostra o item selecionado
+            selectedItem?.let {
+                Text("Item selecionado: ${it.descricao}", style = MaterialTheme.typography.bodyMedium)
             }
-        ) {
-            Text("Compartilhar Lista")
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Exibe o item selecionado
-        selectedItem?.let {
-            Text("Item selecionado: ${it.descricao}", style = MaterialTheme.typography.bodyMedium)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Lista de itens
-        LazyColumn(state = listState) {
-            items(items) { item ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            selectedItem = item // Seleciona o item
-                            descricao = item.descricao // Atualiza o campo de descrição
-                        }
-                        .padding(8.dp)
-                ) {
-                    Text(item.descricao, style = MaterialTheme.typography.bodyMedium)
+            // Lista de itens
+            LazyColumn(state = listState) {
+                items(items) { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedItem = item
+                                descricao = item.descricao
+                            }
+                            .padding(8.dp)
+                    ) {
+                        Text(item.descricao, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }
