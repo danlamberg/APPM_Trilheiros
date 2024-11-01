@@ -8,13 +8,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.appm_trilheiros.dados.Item
-import com.example.appm_trilheiros.dados.ItemDao
+import com.example.appm_trilheiros.models.Item
+import com.example.appm_trilheiros.models.ItemDao
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 

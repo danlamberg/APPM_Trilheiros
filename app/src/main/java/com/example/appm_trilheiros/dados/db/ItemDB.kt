@@ -1,9 +1,11 @@
-package com.example.appm_trilheiros.dados
+package com.example.appm_trilheiros.dados.db
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.appm_trilheiros.models.Item
+import com.example.appm_trilheiros.models.ItemDao
 
 @Database(entities = [Item::class], version = 1)
 abstract class ItemDB : RoomDatabase() {

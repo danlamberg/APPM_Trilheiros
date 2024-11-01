@@ -1,4 +1,4 @@
-package com.example.appm_trilheiros.dados
+package com.example.appm_trilheiros.models
 
 import androidx.room.Dao
 import androidx.room.Delete

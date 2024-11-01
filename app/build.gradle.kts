@@ -1,10 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.google.gms.google-services")
 
     //Adicionar KSP
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -70,6 +70,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("androidx.core:core-ktx:1.7.0")
     implementation(libs.androidx.foundation.android)
+    implementation(libs.firebase.firestore.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

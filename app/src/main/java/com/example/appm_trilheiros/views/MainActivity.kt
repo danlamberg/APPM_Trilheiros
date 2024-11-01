@@ -22,8 +22,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appm_trilheiros.R
-import com.example.appm_trilheiros.dados.ItemDao
-import com.example.appm_trilheiros.dados.ItemDB
+import com.example.appm_trilheiros.models.ItemDao
+import com.example.appm_trilheiros.dados.db.ItemDB
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
 import com.example.appm_trilheiros.ui.theme.Orange
 import com.google.firebase.auth.FirebaseAuth
