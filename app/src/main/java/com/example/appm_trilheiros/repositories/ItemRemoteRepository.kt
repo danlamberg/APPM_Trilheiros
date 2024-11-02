@@ -12,7 +12,6 @@ class ItemRemoteRepository : ItemRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val itemCollection = firestore.collection("itens")
 
-    // Lista todos os itens do Firebase como Flow
     override fun listarFlow(): Flow<List<Item>> = callbackFlow {
         val listener = itemCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -29,19 +28,18 @@ class ItemRemoteRepository : ItemRepository {
         awaitClose { listener.remove() }
     }
 
-    // Busca um item pelo ID
     override suspend fun buscarPorId(idx: Int): Item {
         return itemCollection.document(idx.toString()).get().await().toObject(Item::class.java)
             ?: throw Exception("Item não encontrado")
     }
 
-    // Grava (insere ou atualiza) um item no Firebase
+    // Gravar o item no Firebase
     override suspend fun gravar(item: Item) {
-        itemCollection.document(item.id.toString()).set(item)
+        itemCollection.document(item.id.toString()).set(item).await()
     }
 
-    // Exclui um item do Firebase
+    // Excluir o item do Firebase
     override suspend fun excluir(item: Item) {
-        itemCollection.document(item.id.toString()).delete()
+        itemCollection.document(item.id.toString()).delete().await()
     }
 }

@@ -5,26 +5,34 @@ import com.example.appm_trilheiros.models.ItemDao
 import kotlinx.coroutines.flow.Flow
 
 class ItemLocalRepository(
-    private val dao: ItemDao
+    private val dao: ItemDao,
+    private val remoteRepository: ItemRemoteRepository
 ) : ItemRepository {
 
-    // Lista todos os itens como Flow
     override fun listarFlow(): Flow<List<Item>> {
         return dao.listarFlow()
     }
 
-    // Busca um item pelo ID
     override suspend fun buscarPorId(idx: Int): Item {
         return dao.buscarPorId(idx)
     }
 
-    // Grava (insere ou atualiza) um item no banco local
+    // Gravar o item localmente
     override suspend fun gravar(item: Item) {
-        dao.gravar(item)
+        dao.gravar(item) // Grava no banco local
     }
 
-    // Exclui um item do banco local
+    // Excluir o item
     override suspend fun excluir(item: Item) {
-        dao.excluir(item)
+        dao.excluir(item) // Exclui do banco local
+    }
+
+    // Método para sincronizar dados com o Firebase
+    suspend fun sincronizarComFirebase() {
+        remoteRepository.listarFlow().collect { itens ->
+            itens.forEach { item ->
+                dao.gravar(item)
+            }
+        }
     }
 }
