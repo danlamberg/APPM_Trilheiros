@@ -9,6 +9,7 @@ import com.example.appm_trilheiros.repositories.ItemRemoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ItensViewModel(
@@ -30,12 +31,25 @@ class ItensViewModel(
     fun sincronizarDados() {
         viewModelScope.launch {
             try {
-                localRepository.sincronizarComFirebase()
+                // Primeiro, sincroniza os dados do Firebase para o banco local
+                remoteRepository.listarFlow().collect { itensRemotos ->
+                    itensRemotos.forEach { itemRemoto ->
+                        // Gravar ou atualizar localmente
+                        localRepository.gravar(itemRemoto)
+                    }
+                }
+                // Sincronize os dados locais com o Firebase
+                val itensLocais = localRepository.listarFlow().first()
+                itensLocais.forEach { itemLocal ->
+                    // Grava no Firebase se o item ainda não estiver lá
+                    remoteRepository.gravar(itemLocal)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
+
 
     suspend fun buscarItemPorId(itemId: Int): Item? {
         return localRepository.buscarPorId(itemId)
@@ -73,13 +87,16 @@ class ItensViewModel(
         }
     }
 
+    // Método para excluir um item
     fun excluirItem(item: Item) {
         viewModelScope.launch {
             try {
-                localRepository.excluir(item)
-                remoteRepository.excluir(item)
+                localRepository.excluir(item) // Exclui do local
+                remoteRepository.excluir(item) // Exclui do Firebase
+                Log.d("ItensViewModel", "Item excluído com sucesso: ${item.id}")
             } catch (e: Exception) {
                 e.printStackTrace()
+                Log.e("ItensViewModel", "Erro ao excluir o item: ${e.message}")
             }
         }
     }

@@ -35,7 +35,16 @@ class ItemRemoteRepository : ItemRepository {
 
     // Gravar o item no Firebase
     override suspend fun gravar(item: Item) {
-        itemCollection.document(item.id.toString()).set(item).await()
+        val document = itemCollection.document(item.id.toString())
+        val existingItem = document.get().await().toObject(Item::class.java)
+
+        if (existingItem == null) {
+            // Se o item não existir, crie um novo
+            document.set(item).await()
+        } else {
+            // Caso contrário, atualize-o
+            document.update("descricao", item.descricao).await()
+        }
     }
 
     // Excluir o item do Firebase

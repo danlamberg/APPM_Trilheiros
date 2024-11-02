@@ -27,11 +27,15 @@ class ItemLocalRepository(
         dao.excluir(item) // Exclui do banco local
     }
 
-    // Método para sincronizar dados com o Firebase
     suspend fun sincronizarComFirebase() {
-        remoteRepository.listarFlow().collect { itens ->
-            itens.forEach { item ->
-                dao.gravar(item)
+        remoteRepository.listarFlow().collect { itensRemotos ->
+            itensRemotos.forEach { item ->
+                // Verificar se o item já está no banco local
+                val itemLocal = dao.buscarPorId(item.id)
+                if (itemLocal == null) {
+                    // Se não estiver, gravar no banco local
+                    dao.gravar(item)
+                }
             }
         }
     }
