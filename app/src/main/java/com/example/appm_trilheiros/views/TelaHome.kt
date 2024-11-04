@@ -1,7 +1,6 @@
 package com.example.appm_trilheiros.views
 
 import android.content.Intent
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.models.ItemDao
+import com.example.appm_trilheiros.viewmodels.ItensViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 fun TelaHome(
     onLogout: () -> Unit,
     itemDao: ItemDao,
+    itensViewModel: ItensViewModel, // Adicione a referência ao ItensViewModel
     navController: NavController // NavController para navegação
 ) {
     var items by remember { mutableStateOf(listOf<Item>()) }
@@ -30,7 +31,6 @@ fun TelaHome(
     var descricao by remember { mutableStateOf("") }
     var expandedActions by remember { mutableStateOf(false) } // Estado para controlar a visibilidade dos botões de ação
     var expandedProfileOptions by remember { mutableStateOf(false) } // Estado para controlar a visibilidade das opções de perfil
-    var feedbackMessage by remember { mutableStateOf("") } // Estado para feedback ao usuário
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -85,14 +85,9 @@ fun TelaHome(
                                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                                 if (userId != null) {
                                     val newItem = Item(descricao = descricao, userId = userId)
-                                    coroutineScope.launch {
-                                        itemDao.gravar(newItem)
-                                        feedbackMessage = "Item adicionado com sucesso!"
-                                    }
+                                    itensViewModel.gravarItem(newItem) // Chama o método para gravar no Firebase
                                     descricao = ""
                                 }
-                            } else {
-                                feedbackMessage = "Descrição não pode estar vazia."
                             }
                         },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
@@ -105,7 +100,6 @@ fun TelaHome(
                             selectedItem?.let { item ->
                                 coroutineScope.launch {
                                     itemDao.excluir(item)
-                                    feedbackMessage = "Item excluído com sucesso!"
                                 }
                                 selectedItem = null
                                 descricao = ""
@@ -123,12 +117,9 @@ fun TelaHome(
                                     val updatedItem = item.copy(descricao = descricao)
                                     coroutineScope.launch {
                                         itemDao.gravar(updatedItem)
-                                        feedbackMessage = "Item editado com sucesso!"
                                     }
                                     descricao = ""
                                     selectedItem = null
-                                } else {
-                                    feedbackMessage = "Descrição não pode estar vazia."
                                 }
                             }
                         },
@@ -154,7 +145,6 @@ fun TelaHome(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = {
-                            Log.d("TelaHome", "Navegando para Editar Perfil")
                             navController.navigate("editar_perfil") // Navegação para tela de edição de perfil
                         },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
@@ -185,13 +175,6 @@ fun TelaHome(
                         Text("Sair")
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Exibe feedback ao usuário
-            if (feedbackMessage.isNotEmpty()) {
-                Text(feedbackMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
 
             Spacer(modifier = Modifier.height(16.dp))

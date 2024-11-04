@@ -1,4 +1,4 @@
-package com.example.appm_trilheiros.util
+package com.example.appm_trilheiros.utils
 
 import android.content.Context
 import android.view.inputmethod.InputMethodManager

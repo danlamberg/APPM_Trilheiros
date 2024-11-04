@@ -1,102 +1,100 @@
 package com.example.appm_trilheiros.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.repositories.ItemLocalRepository
 import com.example.appm_trilheiros.repositories.ItemRemoteRepository
+import com.example.appm_trilheiros.utils.ConnectivityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ItensViewModel(
     private val localRepository: ItemLocalRepository,
-    private val remoteRepository: ItemRemoteRepository
+    private val remoteRepository: ItemRemoteRepository,
+    private val context: Context
 ) : ViewModel() {
 
     private val _itens = MutableStateFlow<List<Item>>(emptyList())
     val itens: StateFlow<List<Item>> get() = _itens
 
     init {
+        // Colete os itens do repositório local e observe para mudanças
         viewModelScope.launch {
             localRepository.listarFlow().collectLatest { lista ->
-                _itens.value = lista
+                _itens.value = lista.distinctBy { it.id }  // Remove duplicados pela chave 'id'
             }
         }
+
+        // Sincronize os dados no início
+        sincronizarDados()
     }
 
+    // Sincronização de dados entre local e remoto
     fun sincronizarDados() {
+        if (ConnectivityUtils.isOnline(context)) {
+            viewModelScope.launch {
+                try {
+                    // Garantir que itens duplicados não sejam gravados novamente
+                    remoteRepository.sincronizarComLocal()
+                } catch (e: Exception) {
+                    Log.e("ItensViewModel", "Erro ao sincronizar dados: ${e.message}")
+                }
+            }
+        } else {
+            Log.d("ItensViewModel", "Conexão offline, sincronização não realizada.")
+        }
+    }
+
+    fun gravarItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Primeiro, sincroniza os dados do Firebase para o banco local
-                remoteRepository.listarFlow().collect { itensRemotos ->
-                    itensRemotos.forEach { itemRemoto ->
-                        // Gravar ou atualizar localmente
-                        localRepository.gravar(itemRemoto)
+                // Verificar se o item já existe localmente
+                val existeLocalmente = localRepository.buscarPorId(item.id)
+                if (existeLocalmente == null) {
+                    // Tente gravar localmente
+                    localRepository.gravar(item.copy(updatedAt = System.currentTimeMillis())) // Atualiza o timestamp
+                    Log.d("ItensViewModel", "Item gravado localmente: ${item.descricao}")
+
+                    // Verificar conexão e gravar no repositório remoto, se online
+                    if (ConnectivityUtils.isOnline(context)) {
+                        // Pega o ID do item que foi salvo localmente
+                        val idGerado = localRepository.buscarPorId(item.id)
+                        idGerado?.let { // Usando o operador seguro
+                            remoteRepository.gravar(item.copy(firestoreId = it.id.toString()))
+                            Log.d("ItensViewModel", "Item gravado remotamente: ${item.descricao}")
+                        } ?: Log.d("ItensViewModel", "ID do item gerado não encontrado.")
+                    } else {
+                        Log.d("ItensViewModel", "Item gravado localmente e será sincronizado posteriormente.")
                     }
-                }
-                // Sincronize os dados locais com o Firebase
-                val itensLocais = localRepository.listarFlow().first()
-                itensLocais.forEach { itemLocal ->
-                    // Grava no Firebase se o item ainda não estiver lá
-                    remoteRepository.gravar(itemLocal)
+                } else {
+                    Log.d("ItensViewModel", "Item já existe localmente: ${item.descricao}")
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("ItensViewModel", "Erro ao gravar item: ${e.message}")
             }
         }
     }
 
 
-    suspend fun buscarItemPorId(itemId: Int): Item? {
-        return localRepository.buscarPorId(itemId)
-    }
 
-    // Método para gravar o item localmente
-    fun gravarItemLocal(item: Item) {
-        viewModelScope.launch {
-            try {
-                Log.d("ItensViewModel", "Iniciando gravação do item localmente: ${item.id}")
-
-                // Gravar no banco local
-                localRepository.gravar(item)
-                Log.d("ItensViewModel", "Item gravado localmente com sucesso: ${item.id}")
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("ItensViewModel", "Erro ao gravar o item localmente: ${e.message}")
-            }
-        }
-    }
-
-    // Método para gravar o item no Firebase
-    fun gravarItemFirebase(item: Item) {
-        viewModelScope.launch {
-            try {
-                Log.d("ItensViewModel", "Iniciando gravação do item no Firebase: ${item.id}")
-
-                // Gravar no Firebase
-                remoteRepository.gravar(item)
-                Log.d("ItensViewModel", "Item gravado com sucesso no Firebase: ${item.id}")
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("ItensViewModel", "Erro ao gravar o item no Firebase: ${e.message}")
-            }
-        }
-    }
-
-    // Método para excluir um item
+    // Exclui um item
     fun excluirItem(item: Item) {
         viewModelScope.launch {
             try {
-                localRepository.excluir(item) // Exclui do local
-                remoteRepository.excluir(item) // Exclui do Firebase
-                Log.d("ItensViewModel", "Item excluído com sucesso: ${item.id}")
+                localRepository.excluir(item)
+
+                if (ConnectivityUtils.isOnline(context)) {
+                    remoteRepository.excluir(item)
+                } else {
+                    Log.d("ItensViewModel", "Item excluído localmente e será sincronizado posteriormente.")
+                }
             } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("ItensViewModel", "Erro ao excluir o item: ${e.message}")
+                Log.e("ItensViewModel", "Erro ao excluir item: ${e.message}")
             }
         }
     }

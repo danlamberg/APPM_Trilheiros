@@ -9,14 +9,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier // Importando o Modifier
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,8 +26,12 @@ import androidx.navigation.compose.rememberNavController
 import com.example.appm_trilheiros.R
 import com.example.appm_trilheiros.models.ItemDao
 import com.example.appm_trilheiros.dados.db.ItemDB
+import com.example.appm_trilheiros.repositories.ItemLocalRepository
+import com.example.appm_trilheiros.repositories.ItemRemoteRepository
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
 import com.example.appm_trilheiros.ui.theme.Orange
+import com.example.appm_trilheiros.viewmodels.ItensViewModel
+import com.example.appm_trilheiros.viewmodels.ItensViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -90,6 +96,14 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
                 )
             }
             composable("tela_principal") {
+
+                val localRepository = ItemLocalRepository(itemDao)
+                val remoteRepository = ItemRemoteRepository(itemDao)
+
+                val itensViewModel: ItensViewModel = viewModel(
+                    factory = ItensViewModelFactory(localRepository, remoteRepository, LocalContext.current)
+                )
+
                 TelaHome(
                     onLogout = {
                         isSignedIn = false
@@ -98,12 +112,14 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
                         }
                     },
                     itemDao = itemDao,
-                    navController = navController // Adicione o navController aqui
+                    itensViewModel = itensViewModel,
+                    navController = navController
                 )
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +132,7 @@ fun TopBar() {
                 text = stringResource(id = R.string.app_name),
                 fontSize = 20.sp,
                 fontWeight = fontWeight,
-                color = Color.White // Cor do texto
+                color = Color.White
             )
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
