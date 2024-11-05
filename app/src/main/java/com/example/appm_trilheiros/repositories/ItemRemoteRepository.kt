@@ -42,12 +42,12 @@ class ItemRemoteRepository(
             ?: throw Exception("Item não encontrado")
     }
 
-    // Gravar o item no Firebase e localmente
     override suspend fun gravar(item: Item) {
-        // Adiciona o item e espera o resultado
+        // Adiciona o item ao Firestore
         val documentReference = itemCollection.add(item).await()
-        // Atualiza o firestoreId do item com o ID do Firestore
-        val newItem = item.copy(firestoreId = documentReference.id)
+
+        // Atualiza o firestoreId e o status de sincronização
+        val newItem = item.copy(firestoreId = documentReference.id, isSynced = true)
         dao.gravar(newItem) // Grava o item atualizado no banco local
     }
 

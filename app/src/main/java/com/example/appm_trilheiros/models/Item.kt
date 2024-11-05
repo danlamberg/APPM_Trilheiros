@@ -10,8 +10,9 @@ data class Item(
     var descricao: String = "", // Adicione um valor padrão
     var userId: String = "", // Adicione um valor padrão
     var updatedAt: Long = System.currentTimeMillis(), // Tipo Long para timestamp
-    var firestoreId: String = "" // Tipo String para o Firestore ID
+    var firestoreId: String = "", // Tipo String para o Firestore ID
+    var isSynced: Boolean = false // Adiciona campo para indicar se o item foi sincronizado
 ) {
     // Construtor padrão vazio
-    constructor() : this(0, "", "", System.currentTimeMillis(), "")
+    constructor() : this(0, "", "", System.currentTimeMillis(), "", false)
 }

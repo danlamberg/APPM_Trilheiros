@@ -32,4 +32,8 @@ interface ItemDao {
     // Novo método para buscar um item pelo firestoreId
     @Query("SELECT * FROM tab_itens WHERE firestoreId = :firestoreId LIMIT 1")
     suspend fun buscarPorFirestoreId(firestoreId: String): Item?
+
+    // Método para listar itens não sincronizados
+    @Query("SELECT * FROM tab_itens WHERE isSynced = 0")
+    suspend fun listarItensNaoSincronizados(): List<Item> // Retorna itens que não foram sincronizados
 }

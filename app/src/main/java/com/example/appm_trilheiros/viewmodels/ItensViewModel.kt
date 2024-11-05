@@ -7,41 +7,46 @@ import androidx.lifecycle.viewModelScope
 import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.repositories.ItemLocalRepository
 import com.example.appm_trilheiros.repositories.ItemRemoteRepository
-import com.example.appm_trilheiros.utils.ConnectivityUtils
+import com.example.appm_trilheiros.utils.ConnectionUtil
+import com.example.appm_trilheiros.utils.ReconnectionReceiver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.util.UUID
+import org.koin.core.component.KoinComponent
 
 class ItensViewModel(
     private val localRepository: ItemLocalRepository,
     private val remoteRepository: ItemRemoteRepository,
     private val context: Context
-) : ViewModel() {
+) : ViewModel(), KoinComponent {
 
     private val _itens = MutableStateFlow<List<Item>>(emptyList())
     val itens: StateFlow<List<Item>> get() = _itens
 
-    init {
-        // Colete os itens do repositório local e observe para mudanças
-        viewModelScope.launch {
-            localRepository.listarFlow().collectLatest { lista ->
-                _itens.value = lista.distinctBy { it.id }  // Remove duplicados pela chave 'id'
-            }
-        }
-
-        // Sincronize os dados no início
-        sincronizarDados()
+    private val reconnectionReceiver: ReconnectionReceiver by lazy {
+        ReconnectionReceiver(context, this)
     }
 
-    // Sincronização de dados entre local e remoto
+    init {
+        // Registra o receiver de reconexão para monitorar a conectividade
+        reconnectionReceiver.registerReceiver()
+
+        // Monitora os itens no banco de dados local
+        viewModelScope.launch {
+            localRepository.listarFlow().collectLatest { lista ->
+                _itens.value = lista.distinctBy { it.id }
+            }
+        }
+    }
+
+    // Função para sincronizar os dados com o Firestore
     fun sincronizarDados() {
-        if (ConnectivityUtils.isOnline(context)) {
+        if (ConnectionUtil.isOnline(context)) {
             viewModelScope.launch {
                 try {
-                    // Sincronize o repositório remoto com o banco local, evitando duplicações
                     remoteRepository.sincronizarComLocal()
+                    Log.d("ItensViewModel", "Sincronização realizada com sucesso.")
                 } catch (e: Exception) {
                     Log.e("ItensViewModel", "Erro ao sincronizar dados: ${e.message}")
                 }
@@ -51,58 +56,37 @@ class ItensViewModel(
         }
     }
 
+    // Função para sincronizar itens que ainda não foram sincronizados
+    fun sincronizarItensNaoSincronizados() {
+        viewModelScope.launch {
+            try {
+                val itensNaoSincronizados = localRepository.listarItensNaoSincronizados()
+                for (item in itensNaoSincronizados) {
+                    remoteRepository.gravar(item) // Grava no Firestore
+                }
+                Log.d("ItensViewModel", "Itens não sincronizados foram gravados remotamente.")
+            } catch (e: Exception) {
+                Log.e("ItensViewModel", "Erro ao sincronizar itens: ${e.message}")
+            }
+        }
+    }
+
+    // Função para gravar um novo item, tanto localmente quanto no Firestore
     fun gravarItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Verificar se o item já existe localmente pelo 'firestoreId' para evitar duplicações
-                val existeLocalmente = localRepository.buscarPorFirestoreId(item.firestoreId)
-
-                if (existeLocalmente == null) {
-                    // Atualiza o timestamp e gera um novo Firestore ID se for um novo item
-                    val novoItem = if (item.firestoreId.isEmpty()) {
-                        item.copy(
-                            updatedAt = System.currentTimeMillis(),
-                            firestoreId = UUID.randomUUID().toString()  // Gerar um novo Firestore ID
-                        )
-                    } else {
-                        item.copy(updatedAt = System.currentTimeMillis())
-                    }
-
-                    // Gravar o item localmente
-                    localRepository.gravar(novoItem)
-                    Log.d("ItensViewModel", "Item gravado localmente: ${novoItem.descricao}")
-
-                    // Se estiver online, gravar no Firestore
-                    if (ConnectivityUtils.isOnline(context)) {
-                        remoteRepository.gravar(novoItem)  // Gravar no Firestore
-                        Log.d("ItensViewModel", "Item gravado remotamente: ${novoItem.descricao} com ID: ${novoItem.firestoreId}")
-                    } else {
-                        Log.d("ItensViewModel", "Item gravado localmente e será sincronizado posteriormente.")
-                    }
-                } else {
-                    Log.d("ItensViewModel", "Item já existe localmente: ${item.descricao}")
-                }
+                localRepository.gravar(item)  // Grava localmente
+                remoteRepository.gravar(item)  // Grava no Firestore
+                Log.d("ItensViewModel", "Item gravado com sucesso: ${item.descricao}")
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao gravar item: ${e.message}")
             }
         }
     }
 
-
-    // Exclui um item
-    fun excluirItem(item: Item) {
-        viewModelScope.launch {
-            try {
-                localRepository.excluir(item)
-
-                if (ConnectivityUtils.isOnline(context)) {
-                    remoteRepository.excluir(item)
-                } else {
-                    Log.d("ItensViewModel", "Item excluído localmente e será sincronizado posteriormente.")
-                }
-            } catch (e: Exception) {
-                Log.e("ItensViewModel", "Erro ao excluir item: ${e.message}")
-            }
-        }
+    // Desregistra o receiver quando o ViewModel for destruído
+    override fun onCleared() {
+        super.onCleared()
+        reconnectionReceiver.unregisterReceiver()
     }
 }
