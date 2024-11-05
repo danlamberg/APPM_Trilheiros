@@ -14,7 +14,12 @@ class ItemLocalRepository(
 
     // Retornar Item? para evitar exceções
     override suspend fun buscarPorId(idx: Long): Item? {
-        return dao.buscarPorId(idx) // Certifique-se de que esse método no ItemDao retorna Item? (ou seja, pode retornar null)
+        return dao.buscarPorId(idx) // Certifique-se de que esse método no ItemDao retorna Item?
+    }
+
+    // Novo método para buscar item pelo firestoreId
+    suspend fun buscarPorFirestoreId(firestoreId: String): Item? {
+        return dao.buscarPorFirestoreId(firestoreId) // Retorna Item? ou null se não encontrado
     }
 
     override suspend fun gravar(item: Item) {

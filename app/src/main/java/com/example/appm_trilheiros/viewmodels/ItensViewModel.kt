@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class ItensViewModel(
     private val localRepository: ItemLocalRepository,
@@ -39,7 +40,7 @@ class ItensViewModel(
         if (ConnectivityUtils.isOnline(context)) {
             viewModelScope.launch {
                 try {
-                    // Garantir que itens duplicados não sejam gravados novamente
+                    // Sincronize o repositório remoto com o banco local, evitando duplicações
                     remoteRepository.sincronizarComLocal()
                 } catch (e: Exception) {
                     Log.e("ItensViewModel", "Erro ao sincronizar dados: ${e.message}")
@@ -53,21 +54,28 @@ class ItensViewModel(
     fun gravarItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Verificar se o item já existe localmente
-                val existeLocalmente = localRepository.buscarPorId(item.id)
-                if (existeLocalmente == null) {
-                    // Tente gravar localmente
-                    localRepository.gravar(item.copy(updatedAt = System.currentTimeMillis())) // Atualiza o timestamp
-                    Log.d("ItensViewModel", "Item gravado localmente: ${item.descricao}")
+                // Verificar se o item já existe localmente pelo 'firestoreId' para evitar duplicações
+                val existeLocalmente = localRepository.buscarPorFirestoreId(item.firestoreId)
 
-                    // Verificar conexão e gravar no repositório remoto, se online
+                if (existeLocalmente == null) {
+                    // Atualiza o timestamp e gera um novo Firestore ID se for um novo item
+                    val novoItem = if (item.firestoreId.isEmpty()) {
+                        item.copy(
+                            updatedAt = System.currentTimeMillis(),
+                            firestoreId = UUID.randomUUID().toString()  // Gerar um novo Firestore ID
+                        )
+                    } else {
+                        item.copy(updatedAt = System.currentTimeMillis())
+                    }
+
+                    // Gravar o item localmente
+                    localRepository.gravar(novoItem)
+                    Log.d("ItensViewModel", "Item gravado localmente: ${novoItem.descricao}")
+
+                    // Se estiver online, gravar no Firestore
                     if (ConnectivityUtils.isOnline(context)) {
-                        // Pega o ID do item que foi salvo localmente
-                        val idGerado = localRepository.buscarPorId(item.id)
-                        idGerado?.let { // Usando o operador seguro
-                            remoteRepository.gravar(item.copy(firestoreId = it.id.toString()))
-                            Log.d("ItensViewModel", "Item gravado remotamente: ${item.descricao}")
-                        } ?: Log.d("ItensViewModel", "ID do item gerado não encontrado.")
+                        remoteRepository.gravar(novoItem)  // Gravar no Firestore
+                        Log.d("ItensViewModel", "Item gravado remotamente: ${novoItem.descricao} com ID: ${novoItem.firestoreId}")
                     } else {
                         Log.d("ItensViewModel", "Item gravado localmente e será sincronizado posteriormente.")
                     }
@@ -79,7 +87,6 @@ class ItensViewModel(
             }
         }
     }
-
 
 
     // Exclui um item

@@ -71,6 +71,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.7.0")
     implementation(libs.androidx.foundation.android)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.messaging)
+    implementation(libs.navigation.runtime.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

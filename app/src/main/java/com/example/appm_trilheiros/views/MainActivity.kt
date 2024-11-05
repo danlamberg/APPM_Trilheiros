@@ -34,6 +34,8 @@ import com.example.appm_trilheiros.viewmodels.ItensViewModel
 import com.example.appm_trilheiros.viewmodels.ItensViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
@@ -42,6 +44,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Configura o Firestore com persistência offline
+        configurarFirestore()
 
         val db = abrirBanco()
         itemDao = db.getItemDao()
@@ -52,6 +57,16 @@ class MainActivity : ComponentActivity() {
                 AppContent(navController = navController, itemDao = itemDao)
             }
         }
+    }
+
+    // Método para configurar Firestore
+    private fun configurarFirestore() {
+        // Habilita a persistência offline
+        val firestoreSettings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
+
+        FirebaseFirestore.getInstance().firestoreSettings = firestoreSettings
     }
 
     private fun abrirBanco(): ItemDB {
@@ -119,7 +134,6 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

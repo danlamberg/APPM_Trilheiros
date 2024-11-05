@@ -28,4 +28,8 @@ interface ItemDao {
     // Exclui um item
     @Delete
     suspend fun excluir(item: Item)
+
+    // Novo método para buscar um item pelo firestoreId
+    @Query("SELECT * FROM tab_itens WHERE firestoreId = :firestoreId LIMIT 1")
+    suspend fun buscarPorFirestoreId(firestoreId: String): Item?
 }

@@ -1,4 +1,4 @@
-package com.example.appm_trilheiros.utils
+/*package com.example.appm_trilheiros.utils
 
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
@@ -13,3 +13,4 @@ fun Fragment.hideKeyboard() {
         imm.hideSoftInputFromWindow(v.windowToken, 0)
     }
 }
+*/

@@ -57,11 +57,18 @@ class ItemRemoteRepository(
         dao.excluir(item) // Exclui também do banco local
     }
 
-    // Sincroniza os dados do Firebase com o banco local
     suspend fun sincronizarComLocal() {
         listarFlow().collect { itensRemotos ->
             itensRemotos.forEach { itemRemoto ->
-                dao.gravar(itemRemoto) // Grava os itens remotos localmente
+                // Verifica se o item já existe localmente pelo firestoreId
+                val itemLocal = dao.buscarPorFirestoreId(itemRemoto.firestoreId)
+                if (itemLocal == null) {
+                    // Se o item não existe no banco local, insere
+                    dao.gravar(itemRemoto)
+                } else {
+                    // Se o item já existe, você pode optar por atualizar ou ignorar
+                    // dao.gravar(itemRemoto) // Ou ignorar se não houver mudanças
+                }
             }
         }
     }
