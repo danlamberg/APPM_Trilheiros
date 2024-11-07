@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,14 +25,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appm_trilheiros.R
-import com.example.appm_trilheiros.models.ItemDao
 import com.example.appm_trilheiros.dados.db.ItemDB
+import com.example.appm_trilheiros.models.ItemDao
 import com.example.appm_trilheiros.repositories.ItemLocalRepository
 import com.example.appm_trilheiros.repositories.ItemRemoteRepository
 import com.example.appm_trilheiros.ui.theme.APPM_TrilheirosTheme
 import com.example.appm_trilheiros.ui.theme.Orange
 import com.example.appm_trilheiros.viewmodels.ItensViewModel
 import com.example.appm_trilheiros.viewmodels.ItensViewModelFactory
+import com.example.appm_trilheiros.auth.AuthManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -40,6 +42,7 @@ import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
     private lateinit var itemDao: ItemDao
+    private val authManager = AuthManager() // Instância do AuthManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +57,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             APPM_TrilheirosTheme {
                 val navController = rememberNavController()
-                AppContent(navController = navController, itemDao = itemDao)
+                AppContent(navController = navController, itemDao = itemDao, authManager = authManager)
             }
         }
     }
@@ -75,8 +78,17 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppContent(navController: NavHostController, itemDao: ItemDao) {
-    var isSignedIn by remember { mutableStateOf(false) }
+fun AppContent(
+    navController: NavHostController,
+    itemDao: ItemDao,
+    authManager: AuthManager
+) {
+    val currentUser = authManager.getCurrentUser()  // Obtém o usuário atual
+    var isSignedIn by remember { mutableStateOf(currentUser != null) }
+
+    LaunchedEffect(currentUser) {
+        isSignedIn = currentUser != null
+    }
 
     Scaffold(
         topBar = {
@@ -111,7 +123,6 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
                 )
             }
             composable("tela_principal") {
-
                 val localRepository = ItemLocalRepository(itemDao)
                 val remoteRepository = ItemRemoteRepository(itemDao)
 
@@ -121,6 +132,7 @@ fun AppContent(navController: NavHostController, itemDao: ItemDao) {
 
                 TelaHome(
                     onLogout = {
+                        authManager.signOut()  // Usando AuthManager para logout
                         isSignedIn = false
                         navController.navigate("login") {
                             popUpTo("tela_principal") { inclusive = false }
@@ -162,7 +174,7 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
     var senha by remember { mutableStateOf("") }
     var mostrarErro by remember { mutableStateOf(false) }
 
-    val auth: FirebaseAuth = Firebase.auth
+    val authManager = AuthManager()
 
     Column(
         modifier = Modifier
@@ -189,14 +201,13 @@ fun TelaLogin(navController: NavHostController, onSignIn: () -> Unit) {
 
         Button(
             onClick = {
-                auth.signInWithEmailAndPassword(email, senha)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            onSignIn()
-                        } else {
-                            mostrarErro = true
-                        }
+                authManager.signIn(email, senha) { isSuccess ->
+                    if (isSuccess) {
+                        onSignIn()
+                    } else {
+                        mostrarErro = true
                     }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Orange)
@@ -233,7 +244,7 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
-    val auth: FirebaseAuth = Firebase.auth
+    val authManager = AuthManager()
 
     Column(
         modifier = Modifier
@@ -277,33 +288,34 @@ fun TelaCadastro(navController: NavHostController, onSignUp: () -> Unit) {
         Button(
             onClick = {
                 if (nome.isNotEmpty() && sobrenome.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-                    auth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                successMessage = "Cadastro bem-sucedido!"
-                                errorMessage = null
-                                onSignUp()
-                            } else {
-                                errorMessage = task.exception?.message
-                                successMessage = null
-                            }
+                    authManager.signUp(email, password) { isSuccess ->
+                        if (isSuccess) {
+                            successMessage = "Cadastro bem-sucedido!"
+                            errorMessage = null
+                            onSignUp()
+                        } else {
+                            errorMessage = "Erro no cadastro. Tente novamente."
+                            successMessage = null
                         }
+                    }
                 } else {
-                    errorMessage = "Por favor, preencha todos os campos."
+                    errorMessage = "Todos os campos são obrigatórios."
                 }
             },
+            modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Orange)
         ) {
             Text("Cadastrar")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        errorMessage?.let {
-            Text(text = it, color = Color.Red)
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = errorMessage ?: "", color = Color.Red)
         }
-        successMessage?.let {
-            Text(text = it, color = Color.Green)
+
+        if (successMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = successMessage ?: "", color = Color.Green)
         }
     }
 }
