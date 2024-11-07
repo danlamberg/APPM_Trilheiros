@@ -1,11 +1,12 @@
 package com.example.appm_trilheiros.repositories
 
+import android.util.Log
 import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.models.ItemDao
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
 class ItemRemoteRepository(
@@ -16,7 +17,7 @@ class ItemRemoteRepository(
     private val itemCollection = firestore.collection("itens")
 
     // Lista todos os itens do Firebase como Flow
-    override fun listarFlow(): Flow<List<Item>> = callbackFlow {
+    override fun listarFlow() = callbackFlow {
         val listener = itemCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 close(error)
@@ -25,7 +26,6 @@ class ItemRemoteRepository(
             if (snapshot != null) {
                 val items = snapshot.documents.mapNotNull { document ->
                     val item = document.toObject(Item::class.java)
-                    // Atualiza o firestoreId com o ID do documento do Firestore
                     item?.copy(firestoreId = document.id)
                 }
                 trySend(items).isSuccess
@@ -35,41 +35,125 @@ class ItemRemoteRepository(
     }
 
     // Busca um item pelo ID no Firebase
-    override suspend fun buscarPorId(idx: Long): Item { // Alterado para Long
-        // Aqui você deve fazer a conversão do Long para String, pois o Firestore espera o ID como String
-        return itemCollection.document(idx.toString()).get().await().toObject(Item::class.java)
-            ?.copy(firestoreId = idx.toString()) // Atualiza firestoreId se necessário
+    override suspend fun buscarPorId(idx: Long): Item {
+        return itemCollection.document(idx.toString()).get().await()
+            .toObject(Item::class.java)
+            ?.copy(firestoreId = idx.toString())
             ?: throw Exception("Item não encontrado")
     }
 
+    // Grava o item no Firestore e atualiza o banco local
     override suspend fun gravar(item: Item) {
-        // Adiciona o item ao Firestore
-        val documentReference = itemCollection.add(item).await()
+        try {
+            // Verifica se é um novo item ou se já existe no Firestore
+            if (item.firestoreId.isEmpty()) {
+                // Verifica se o item já existe no Firestore pela descrição
+                val existingItem = itemCollection
+                    .whereEqualTo("descricao", item.descricao) // Verifica pela descrição
+                    .get()
+                    .await()
+                    .documents
+                    .firstOrNull()
 
-        // Atualiza o firestoreId e o status de sincronização
-        val newItem = item.copy(firestoreId = documentReference.id, isSynced = true)
-        dao.gravar(newItem) // Grava o item atualizado no banco local
+                if (existingItem != null) {
+                    Log.d("ItemRemoteRepository", "Item já existe no Firestore: ${item.descricao}")
+                    return // Se já existir, não insere
+                }
+
+                // Adiciona o item ao Firestore (cria um novo documento com ID automático)
+                val documentReference = itemCollection.add(item).await()
+
+                // Atualiza o firestoreId e o status de sincronização
+                val newItem = item.copy(firestoreId = documentReference.id, isSynced = true)
+
+                // Grava no banco local
+                dao.gravar(newItem)
+                Log.d("ItemRemoteRepository", "Item gravado com sucesso no Firestore: ${newItem.descricao}")
+            } else {
+                // Atualiza o item no Firestore com o firestoreId
+                itemCollection.document(item.firestoreId).set(item).await()
+
+                // Atualiza o status de sincronização no banco local
+                val newItem = item.copy(isSynced = true)
+                dao.gravar(newItem) // Atualiza localmente
+
+                // Log de edição do item
+                Log.d("ItemRemoteRepository", "Item editado: ${newItem.descricao} (Firestore ID: ${newItem.firestoreId})")
+                Log.d("ItemRemoteRepository", "Item atualizado no Firestore: ${newItem.descricao}")
+            }
+        } catch (e: Exception) {
+            Log.e("ItemRemoteRepository", "Erro ao gravar o item: ${e.message}")
+        }
     }
 
-    // Excluir o item do Firebase e localmente
+    // Excluir o item do Firestore e localmente
     override suspend fun excluir(item: Item) {
-        itemCollection.document(item.firestoreId).delete().await() // Usa firestoreId para exclusão
-        dao.excluir(item) // Exclui também do banco local
+        try {
+            // Primeiro tenta excluir no Firestore
+            if (item.firestoreId.isNotEmpty()) {
+                itemCollection.document(item.firestoreId).delete().await()
+                Log.d("ItemRemoteRepository", "Item excluído no Firestore.")
+            }
+
+            // Em qualquer caso, exclui localmente
+            dao.excluir(item)
+            Log.d("ItemRemoteRepository", "Item excluído localmente.")
+        } catch (e: Exception) {
+            // Se a exclusão falhar no Firestore, apenas atualiza localmente para exclusão pendente
+            Log.e("ItemRemoteRepository", "Erro ao excluir o item: ${e.message}")
+            val itemComFalha = item.copy(isSynced = false)  // Marca como não sincronizado
+            dao.gravar(itemComFalha)  // Atualiza localmente para futura sincronização
+        }
     }
 
-    suspend fun sincronizarComLocal() {
-        listarFlow().collect { itensRemotos ->
-            itensRemotos.forEach { itemRemoto ->
-                // Verifica se o item já existe localmente pelo firestoreId
-                val itemLocal = dao.buscarPorFirestoreId(itemRemoto.firestoreId)
-                if (itemLocal == null) {
-                    // Se o item não existe no banco local, insere
-                    dao.gravar(itemRemoto)
-                } else {
-                    // Se o item já existe, você pode optar por atualizar ou ignorar
-                    // dao.gravar(itemRemoto) // Ou ignorar se não houver mudanças
+    // Tenta excluir os itens pendentes no Firestore quando a conectividade é restaurada
+    suspend fun sincronizarExclusoesPendentes() {
+        try {
+            // Busca os itens que ainda não foram sincronizados (e que já foram excluídos localmente)
+            val itensNaoSincronizados = dao.listarFlow().first().filter { !it.isSynced }
+
+            for (item in itensNaoSincronizados) {
+                try {
+                    // Tenta excluir no Firestore
+                    if (item.firestoreId.isNotEmpty()) {
+                        itemCollection.document(item.firestoreId).delete().await()
+                        Log.d("ItemRemoteRepository", "Item excluído do Firestore após falha anterior.")
+                    }
+                    // Após a exclusão bem-sucedida no Firestore, remove completamente do local
+                    dao.excluir(item)
+
+                } catch (e: Exception) {
+                    Log.e("ItemRemoteRepository", "Falha ao excluir item pendente no Firestore: ${e.message}")
                 }
             }
+        } catch (e: Exception) {
+            Log.e("ItemRemoteRepository", "Erro ao sincronizar exclusões pendentes: ${e.message}")
+        }
+    }
+
+    // Sincroniza os itens do Firestore com o banco local
+    suspend fun sincronizarComLocal() {
+        try {
+            listarFlow().collect { itensRemotos ->
+                itensRemotos.forEach { itemRemoto ->
+                    // Verifica se o item já existe no banco local
+                    val itemLocal = dao.buscarPorFirestoreId(itemRemoto.firestoreId)
+                    if (itemLocal == null) {
+                        // Se o item não existe no banco local, insira
+                        dao.gravar(itemRemoto)
+                        Log.d("ItemRemoteRepository", "Item sincronizado com sucesso: ${itemRemoto.descricao}")
+                    } else {
+                        // Se o item já existe no banco local, você pode atualizá-lo ou ignorá-lo
+                        // Aqui, se o item foi alterado no Firestore, atualiza o banco local
+                        if (itemRemoto.updatedAt > itemLocal.updatedAt) {
+                            dao.gravar(itemRemoto)
+                            Log.d("ItemRemoteRepository", "Item foi atualizado do Firestore: ${itemRemoto.descricao}")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ItemRemoteRepository", "Erro ao sincronizar com o banco local: ${e.message}")
         }
     }
 }

@@ -69,6 +69,9 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("androidx.core:core-ktx:1.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3") // ou versão mais recente
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") // ou versão mais recente
+    implementation("com.google.firebase:firebase-firestore-ktx:24.6.1") // ou versão mais recente
     implementation(libs.androidx.foundation.android)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.messaging)

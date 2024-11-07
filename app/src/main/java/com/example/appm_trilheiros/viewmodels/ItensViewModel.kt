@@ -32,10 +32,10 @@ class ItensViewModel(
         // Registra o receiver de reconexão para monitorar a conectividade
         reconnectionReceiver.registerReceiver()
 
-        // Monitora os itens no banco de dados local
+        // Monitora os itens no banco de dados local e evita duplicação
         viewModelScope.launch {
             localRepository.listarFlow().collectLatest { lista ->
-                _itens.value = lista.distinctBy { it.id }
+                _itens.value = lista.distinctBy { it.id } // Garante que itens duplicados sejam removidos
             }
         }
     }
@@ -45,7 +45,7 @@ class ItensViewModel(
         if (ConnectionUtil.isOnline(context)) {
             viewModelScope.launch {
                 try {
-                    remoteRepository.sincronizarComLocal()
+                    remoteRepository.sincronizarComLocal() // Sincroniza com o Firestore
                     Log.d("ItensViewModel", "Sincronização realizada com sucesso.")
                 } catch (e: Exception) {
                     Log.e("ItensViewModel", "Erro ao sincronizar dados: ${e.message}")
@@ -62,7 +62,7 @@ class ItensViewModel(
             try {
                 val itensNaoSincronizados = localRepository.listarItensNaoSincronizados()
                 for (item in itensNaoSincronizados) {
-                    remoteRepository.gravar(item) // Grava no Firestore
+                    remoteRepository.gravar(item) // Grava os itens não sincronizados no Firestore
                 }
                 Log.d("ItensViewModel", "Itens não sincronizados foram gravados remotamente.")
             } catch (e: Exception) {
@@ -75,7 +75,16 @@ class ItensViewModel(
     fun gravarItem(item: Item) {
         viewModelScope.launch {
             try {
-                localRepository.gravar(item)  // Grava localmente
+                // Verifica se o item já existe no banco local
+                val existingItem = localRepository.buscarPorId(item.id)
+                if (existingItem != null) {
+                    // Se o item já existe, você pode optar por atualizar ou ignorar
+                    Log.d("ItensViewModel", "Item já existe localmente, não será gravado novamente.")
+                    return@launch
+                }
+
+                // Grava no banco local e no Firestore
+                localRepository.gravar(item)
                 remoteRepository.gravar(item)  // Grava no Firestore
                 Log.d("ItensViewModel", "Item gravado com sucesso: ${item.descricao}")
             } catch (e: Exception) {

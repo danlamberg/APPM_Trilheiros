@@ -16,7 +16,9 @@ import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.models.ItemDao
 import com.example.appm_trilheiros.viewmodels.ItensViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +101,22 @@ fun TelaHome(
                         onClick = {
                             selectedItem?.let { item ->
                                 coroutineScope.launch {
+                                    // Excluir do banco local
                                     itemDao.excluir(item)
+                                    // Excluir do Firestore
+                                    val firestoreId = item.firestoreId
+                                    if (firestoreId.isNotEmpty()) {
+                                        // Excluir do Firestore
+                                        FirebaseFirestore.getInstance().collection("itens")
+                                            .document(firestoreId)
+                                            .delete()
+                                            .addOnSuccessListener {
+                                                Log.d("TelaHome", "Item excluído do Firestore")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("TelaHome", "Erro ao excluir item do Firestore", e)
+                                            }
+                                    }
                                 }
                                 selectedItem = null
                                 descricao = ""
@@ -114,12 +131,26 @@ fun TelaHome(
                         onClick = {
                             selectedItem?.let { item ->
                                 if (descricao.isNotEmpty()) {
-                                    val updatedItem = item.copy(descricao = descricao)
+                                    val updatedItem = item.copy(descricao = descricao) // Atualiza a descrição do item
                                     coroutineScope.launch {
+                                        // Atualiza o item no banco local
                                         itemDao.gravar(updatedItem)
+
+                                        // Atualiza o item no Firestore
+                                        if (updatedItem.firestoreId.isNotEmpty()) {
+                                            FirebaseFirestore.getInstance().collection("itens")
+                                                .document(updatedItem.firestoreId)
+                                                .set(updatedItem)
+                                                .addOnSuccessListener {
+                                                    Log.d("TelaHome", "Item atualizado com sucesso no Firestore: ${updatedItem.descricao}")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Log.e("TelaHome", "Erro ao atualizar o item no Firestore", e)
+                                                }
+                                        }
                                     }
-                                    descricao = ""
-                                    selectedItem = null
+                                    descricao = "" // Limpa o campo de descrição
+                                    selectedItem = null // Desmarca o item selecionado
                                 }
                             }
                         },
@@ -127,10 +158,10 @@ fun TelaHome(
                     ) {
                         Text("Editar")
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Botão para alternar a exibição das opções de perfil
             Button(
