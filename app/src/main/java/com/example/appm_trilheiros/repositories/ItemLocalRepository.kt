@@ -31,18 +31,7 @@ class ItemLocalRepository(
 
     // Grava um item no banco local
     override suspend fun gravar(item: Item) {
-        // Verifica se o item já existe no banco local pela descrição
-        val existingItem = dao.buscarPorDescricao(item.descricao)
-        if (existingItem != null) {
-            Log.d("ItemLocalRepository", "Item já existe no banco local: ${item.descricao}")
-            return // Se já existir, não insere
-        }
-
-        val novoItem = item.copy(isSynced = false) // Marca como não sincronizado inicialmente
-        dao.gravar(novoItem) // Grava no banco local
-
-        // Log para indicar que o item foi salvo no banco local
-        Log.d("ItemLocalRepository", "Item salvo no banco local: ${novoItem.descricao}")
+        dao.gravar(item) // Exclui do banco local
     }
 
     // Exclui um item do banco local

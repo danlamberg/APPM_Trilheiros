@@ -42,33 +42,24 @@ class ItemRemoteRepository(
             ?: throw Exception("Item não encontrado")
     }
 
-    // Grava o item no Firestore e atualiza o banco local
     override suspend fun gravar(item: Item) {
         try {
             // Verifica se é um novo item ou se já existe no Firestore
             if (item.firestoreId.isEmpty()) {
-                // Verifica se o item já existe no Firestore pela descrição
-                val existingItem = itemCollection
-                    .whereEqualTo("descricao", item.descricao) // Verifica pela descrição
-                    .get()
-                    .await()
-                    .documents
-                    .firstOrNull()
+                // Gera um ID único baseado no userId e descricao para evitar duplicação
+                val documentId = "${item.userId}_${item.descricao.hashCode()}" // Garante que cada item tenha um ID único para o usuário
 
-                if (existingItem != null) {
-                    Log.d("ItemRemoteRepository", "Item já existe no Firestore: ${item.descricao}")
-                    return // Se já existir, não insere
-                }
-
-                // Adiciona o item ao Firestore (cria um novo documento com ID automático)
-                val documentReference = itemCollection.add(item).await()
+                // Usa o documentId gerado ao invés de add() para garantir que o item não seja duplicado
+                itemCollection.document(documentId).set(item).await()
 
                 // Atualiza o firestoreId e o status de sincronização
-                val newItem = item.copy(firestoreId = documentReference.id, isSynced = true)
+                val newItem = item.copy(firestoreId = documentId, isSynced = true)
 
                 // Grava no banco local
                 dao.gravar(newItem)
-                Log.d("ItemRemoteRepository", "Item gravado com sucesso no Firestore: ${newItem.descricao}")
+
+                // Exibe a mensagem com o UserID
+                Log.d("ItemRemoteRepository", "Item cadastrado para o UserID: ${newItem.userId} - ${newItem.descricao}")
             } else {
                 // Atualiza o item no Firestore com o firestoreId
                 itemCollection.document(item.firestoreId).set(item).await()
