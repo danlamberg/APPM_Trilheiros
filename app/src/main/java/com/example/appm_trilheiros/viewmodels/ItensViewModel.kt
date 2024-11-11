@@ -59,37 +59,36 @@ class ItensViewModel(
     fun gravarItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Verifica se o item já existe no banco local pelo firestoreId ou pela descrição
+                // Verifica se o item já existe no banco local
                 val existingItem = localRepository.buscarPorFirestoreId(item.firestoreId)
                     ?: localRepository.buscarPorDescricao(item.descricao)
 
+                Log.d("ItensViewModel", "Item encontrado localmente: $existingItem")
+
                 // Se o item já existe, não faz nada
                 if (existingItem != null) {
-                    Log.d(
-                        "ItensViewModel",
-                        "Item já existe localmente, não será gravado novamente."
-                    )
+                    Log.d("ItensViewModel", "Item já existe localmente, não será gravado novamente.")
                     return@launch
                 }
 
                 // Se o aparelho estiver offline, não tentamos gravar no Firestore imediatamente
                 if (ConnectionUtil.isNetworkAvailable(context)) {
+                    Log.d("ItensViewModel", "Conexão com a internet disponível.")
+
                     // Se estiver online, grava no Firestore
                     remoteRepository.gravar(item)
                     item.isSynced = true // Marca como sincronizado
-                    localRepository.atualizar(item) // Atualiza o item local
-                    Log.d(
-                        "ItensViewModel",
-                        "Item gravado no Firestore e localmente com sucesso: ${item.descricao}"
-                    )
+                    Log.d("ItensViewModel", "Gravando item no Firestore: ${item.descricao}")
+
+                    // Atualiza o item local
+                    localRepository.atualizar(item)
+                    Log.d("ItensViewModel", "Item atualizado localmente: ${item.descricao}")
+
                 } else {
                     // Marca o item como não sincronizado se estiver offline
                     item.isSynced = false
                     localRepository.gravar(item) // Grava no banco local
-                    Log.d(
-                        "ItensViewModel",
-                        "Item gravado localmente como não sincronizado: ${item.descricao}"
-                    )
+                    Log.d("ItensViewModel", "Item gravado localmente como não sincronizado: ${item.descricao}")
                 }
 
                 // Atualiza a lista de itens não sincronizados na UI
