@@ -36,11 +36,15 @@ class ItemLocalRepository(
 
     // Grava um item no banco local
     override suspend fun gravar(item: Item) {
-        dao.gravar(item) // Exclui do banco local
+        dao.gravar(item) // Grava no banco local
     }
 
     // Exclui um item do banco local
     override suspend fun excluir(item: Item) {
         dao.excluir(item) // Exclui do banco local
+    }
+
+    override suspend fun atualizar(item: Item) {
+        dao.atualizar(item)
     }
 }

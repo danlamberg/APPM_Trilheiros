@@ -100,24 +100,9 @@ fun TelaHome(
                     Button(
                         onClick = {
                             selectedItem?.let { item ->
-                                coroutineScope.launch {
-                                    // Excluir do banco local
-                                    itemDao.excluir(item)
-                                    // Excluir do Firestore
-                                    val firestoreId = item.firestoreId
-                                    if (firestoreId.isNotEmpty()) {
-                                        // Excluir do Firestore
-                                        FirebaseFirestore.getInstance().collection("itens")
-                                            .document(firestoreId)
-                                            .delete()
-                                            .addOnSuccessListener {
-                                                Log.d("TelaHome", "Item excluído do Firestore")
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.e("TelaHome", "Erro ao excluir item do Firestore", e)
-                                            }
-                                    }
-                                }
+                                // Chama a função da ViewModel para excluir o item
+                                itensViewModel.excluirItem(item)
+                                // Limpa a seleção e a descrição após a exclusão
                                 selectedItem = null
                                 descricao = ""
                             }
@@ -131,24 +116,12 @@ fun TelaHome(
                         onClick = {
                             selectedItem?.let { item ->
                                 if (descricao.isNotEmpty()) {
-                                    val updatedItem = item.copy(descricao = descricao) // Atualiza a descrição do item
-                                    coroutineScope.launch {
-                                        // Atualiza o item no banco local
-                                        itemDao.gravar(updatedItem)
+                                    val updatedItem =
+                                        item.copy(descricao = descricao) // Atualiza a descrição do item
 
-                                        // Atualiza o item no Firestore
-                                        if (updatedItem.firestoreId.isNotEmpty()) {
-                                            FirebaseFirestore.getInstance().collection("itens")
-                                                .document(updatedItem.firestoreId)
-                                                .set(updatedItem)
-                                                .addOnSuccessListener {
-                                                    Log.d("TelaHome", "Item atualizado com sucesso no Firestore: ${updatedItem.descricao}")
-                                                }
-                                                .addOnFailureListener { e ->
-                                                    Log.e("TelaHome", "Erro ao atualizar o item no Firestore", e)
-                                                }
-                                        }
-                                    }
+                                    // Chama a função atualizarItem do ViewModel
+                                    itensViewModel.atualizarItem(updatedItem)
+
                                     descricao = "" // Limpa o campo de descrição
                                     selectedItem = null // Desmarca o item selecionado
                                 }

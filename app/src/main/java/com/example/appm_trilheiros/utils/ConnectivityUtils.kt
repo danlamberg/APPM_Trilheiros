@@ -13,4 +13,9 @@ object ConnectionUtil {
         val capabilities = connectivityManager.getNetworkCapabilities(network)
         return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
+
+    // Função para verificar se a rede está disponível (pode ser um alias para isOnline)
+    fun isNetworkAvailable(context: Context): Boolean {
+        return isOnline(context) // Reutilizando a lógica de isOnline
+    }
 }

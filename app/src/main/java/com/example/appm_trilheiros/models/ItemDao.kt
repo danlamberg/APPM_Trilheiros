@@ -2,7 +2,9 @@ package com.example.appm_trilheiros.models
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -21,9 +23,13 @@ interface ItemDao {
     @Query("SELECT * FROM tab_itens WHERE firestoreId = :firestoreId LIMIT 1")
     suspend fun buscarPorFirestoreId(firestoreId: String): Item?
 
-    // Insere ou atualiza um item
-    @Upsert
+    // Insere um item
+    @Insert
     suspend fun gravar(item: Item)
+
+    // Atualiza um item
+    @Update
+    suspend fun atualizar(item: Item)
 
     // Exclui um item
     @Delete
@@ -40,4 +46,5 @@ interface ItemDao {
     // Lista itens do usuário com base no userId
     @Query("SELECT * FROM tab_itens WHERE userId = :userId")
     fun listarFlowPorUsuario(userId: String): Flow<List<Item>>
+
 }
