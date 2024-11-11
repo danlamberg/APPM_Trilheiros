@@ -29,6 +29,11 @@ class ItemLocalRepository(
         return dao.buscarPorFirestoreId(firestoreId)
     }
 
+    // Função para buscar um item pelo campo descricao no banco local
+    suspend fun buscarPorDescricao(descricao: String): Item? {
+        return dao.buscarPorDescricao(descricao)
+    }
+
     // Grava um item no banco local
     override suspend fun gravar(item: Item) {
         dao.gravar(item) // Exclui do banco local
