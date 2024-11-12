@@ -8,5 +8,5 @@ interface ItemRepository {
     suspend fun buscarPorId(idx: Long): Item? // Busca item pelo ID
     suspend fun gravar(item: Item) // Grava item
     suspend fun excluir(item: Item) // Exclui item
-    suspend fun atualizar(item: Item) // Exclui item
+    suspend fun atualizar(item: Item) // Atualiza item
 }
