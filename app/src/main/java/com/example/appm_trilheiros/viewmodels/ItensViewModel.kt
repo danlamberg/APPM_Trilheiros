@@ -79,6 +79,12 @@ class ItensViewModel(
 
                 val isNetworkAvailable = ConnectionUtil.isNetworkAvailable(context)
 
+                // Se estiver offline, gere um firestoreId temporário
+                if (!isNetworkAvailable && item.firestoreId.isEmpty()) {
+                    val temporaryFirestoreId = "offline_${System.currentTimeMillis()}"
+                    item.firestoreId = temporaryFirestoreId
+                }
+
                 if (isNetworkAvailable) {
                     remoteRepository.gravar(item)
                     item.isSynced = true
@@ -97,19 +103,23 @@ class ItensViewModel(
         }
     }
 
+
     fun excluirItem(item: Item) {
         viewModelScope.launch {
             try {
                 if (ConnectionUtil.isNetworkAvailable(context)) {
-                    remoteRepository.excluir(item)
+                    if (item.firestoreId.isNotEmpty()) {
+                        remoteRepository.excluir(item) // Exclui do Firestore
+                    }
                 }
                 localRepository.excluir(item) // Exclui no banco local
-                listarItensOffline()
+                listarItensOffline() // Atualiza a lista de itens offline
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao excluir item: ${e.message}")
             }
         }
     }
+
 
     fun excluirItemOffline(item: Item) {
         viewModelScope.launch {
@@ -126,9 +136,29 @@ class ItensViewModel(
     fun atualizarItem(item: Item) {
         viewModelScope.launch {
             try {
-                remoteRepository.atualizar(item)
-                localRepository.atualizar(item) // Atualiza no banco local
-                listarItensOffline()
+                // Verifica se o item existe no banco local
+                val existingItem = localRepository.buscarPorId(item.id)
+
+                if (existingItem == null) {
+                    Log.e("ItensViewModel", "Item não encontrado para atualização.")
+                    return@launch
+                }
+
+                val isNetworkAvailable = ConnectionUtil.isNetworkAvailable(context)
+
+                if (isNetworkAvailable) {
+                    // Se a rede estiver disponível, atualiza o item no Firestore e no banco local
+                    remoteRepository.atualizar(item)
+                    item.isSynced = true // Marca como sincronizado
+                    localRepository.atualizar(item)
+                } else {
+                    // Se estiver offline, apenas atualiza localmente e marca como não sincronizado
+                    item.isSynced = false
+                    localRepository.atualizar(item) // Atualiza apenas no banco local
+                }
+
+                listarItensOffline() // Atualiza a lista de itens offline
+
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao atualizar item: ${e.message}")
             }
