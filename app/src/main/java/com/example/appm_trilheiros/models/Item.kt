@@ -6,13 +6,15 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "tab_itens")
 data class Item(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0, // Tipo Long para o ID gerado automaticamente
-    var descricao: String = "", // Adicione um valor padrão
-    var userId: String = "", // Adicione um valor padrão
-    var updatedAt: Long = System.currentTimeMillis(), // Tipo Long para timestamp
-    var firestoreId: String = "", // Tipo String para o Firestore ID
-    var isSynced: Boolean = false // Adiciona campo para indicar se o item foi sincronizado
-) {
+    val id: Long = 0,
+    var descricao: String = "",
+    var userId: String = "",
+    var updatedAt: Long = System.currentTimeMillis(),
+    var firestoreId: String = "",
+    var isSynced: Boolean = false,
+    var isMarkedForDeletion: Boolean = false // Novo campo para marcar itens para exclusão
+)
+ {
     // Construtor padrão vazio
     constructor() : this(0, "", "", System.currentTimeMillis(), "", false)
 }

@@ -16,16 +16,14 @@ import com.example.appm_trilheiros.models.Item
 import com.example.appm_trilheiros.models.ItemDao
 import com.example.appm_trilheiros.viewmodels.ItensViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
-import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaHome(
     onLogout: () -> Unit,
     itemDao: ItemDao,
-    itensViewModel: ItensViewModel, // Adicione a referência ao ItensViewModel
+    itensViewModel: ItensViewModel, // Adiciona a referência ao ItensViewModel
     navController: NavController // NavController para navegação
 ) {
     var items by remember { mutableStateOf(listOf<Item>()) }
@@ -39,13 +37,8 @@ fun TelaHome(
     val context = LocalContext.current
 
     // Coleta de itens do banco de dados para o usuário atual
-    LaunchedEffect(Unit) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId != null) {
-            itemDao.listarFlowPorUsuario(userId).collect { itemList ->
-                items = itemList
-            }
-        }
+    LaunchedEffect(itensViewModel.itens.collectAsState().value) {
+        items = itensViewModel.itens.value // Atualiza a lista com os itens mais recentes
     }
 
     Box(
