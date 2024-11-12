@@ -35,39 +35,33 @@ class ItensViewModel(
         // Monitora os itens no banco de dados local e evita duplicação
         viewModelScope.launch {
             localRepository.listarFlow().collectLatest { lista ->
-                // Log para depuração, verificando se a lista está sendo atualizada
-                Log.d("ItensViewModel", "Itens atualizados: $lista")
-                // Atualiza o estado com a lista de itens
+                // Atualiza o estado com a lista de itens sem duplicações
                 _itens.value = lista.distinctBy { it.id }
             }
         }
     }
 
-    // Função para sincronizar itens que ainda não foram sincronizados
     fun sincronizarItensNaoSincronizados() {
         viewModelScope.launch {
             try {
                 val itensNaoSincronizados = localRepository.listarItensNaoSincronizados()
                 for (item in itensNaoSincronizados) {
                     if (item.isMarkedForDeletion) {
-                        // Se o item já foi sincronizado com o Firestore (tem um firestoreId), exclui remotamente
+                        // Exclui o item do Firestore e do banco local
                         if (!item.firestoreId.isNullOrEmpty()) {
                             remoteRepository.excluir(item)
-                            localRepository.excluir(item) // Exclui também localmente após sincronizar
-                            Log.d("ItensViewModel", "Item excluído do Firestore: ${item.descricao}")
-                        } else {
-                            // Se nunca foi sincronizado com o Firestore, apenas exclui localmente
                             localRepository.excluir(item)
-                            Log.d("ItensViewModel", "Item excluído localmente (não foi sincronizado): ${item.descricao}")
+                        } else {
+                            localRepository.excluir(item) // Exclui apenas localmente
                         }
                     } else {
-                        // Sincroniza normalmente se não estiver marcado para exclusão
+                        // Sincroniza o item
                         remoteRepository.gravar(item)
                         item.isSynced = true
                         localRepository.atualizar(item)
-                        Log.d("ItensViewModel", "Item sincronizado com sucesso: ${item.descricao}")
                     }
                 }
+                listarItensOffline()
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao sincronizar itens: ${e.message}")
             }
@@ -81,69 +75,36 @@ class ItensViewModel(
                 val existingItem = localRepository.buscarPorFirestoreId(item.firestoreId)
                     ?: localRepository.buscarPorDescricao(item.descricao)
 
-                Log.d("ItensViewModel", "Item encontrado localmente: $existingItem")
+                if (existingItem != null) return@launch // Item já existe, não grava novamente
 
-                // Se o item já existe, não faz nada
-                if (existingItem != null) {
-                    Log.d("ItensViewModel", "Item já existe localmente, não será gravado novamente.")
-                    return@launch
-                }
-
-                // Verifica a conexão com a internet
                 val isNetworkAvailable = ConnectionUtil.isNetworkAvailable(context)
-                Log.d("ItensViewModel", "Verificando conexão: $isNetworkAvailable")
 
-                // Se o aparelho estiver offline, não tentamos gravar no Firestore imediatamente
                 if (isNetworkAvailable) {
-                    Log.d("ItensViewModel", "Conexão com a internet disponível.")
-
-                    // Se estiver online, grava no Firestore
                     remoteRepository.gravar(item)
-                    item.isSynced = true // Marca como sincronizado
-                    Log.d("ItensViewModel", "Gravando item no Firestore: ${item.descricao}")
-
-                    // Atualiza o item local
+                    item.isSynced = true
                     localRepository.atualizar(item)
-                    Log.d("ItensViewModel", "Item atualizado localmente após sincronização: ${item.descricao}")
-
                 } else {
-                    // Marca o item como não sincronizado se estiver offline
                     item.isSynced = false
                     localRepository.gravar(item) // Grava no banco local
-                    Log.d("ItensViewModel", "Item gravado localmente como não sincronizado: ${item.descricao}")
                 }
 
-                // Atualiza a lista de itens não sincronizados na UI
+                _itens.value = _itens.value + item
                 listarItensOffline()
 
             } catch (e: Exception) {
-                // Loga a exceção para depuração
-                Log.e("ItensViewModel", "Erro ao gravar item: ${e.message}", e)
+                Log.e("ItensViewModel", "Erro ao gravar item: ${e.message}")
             }
         }
     }
 
-
     fun excluirItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Verifica a conexão com a rede antes de tentar excluir no Firestore
                 if (ConnectionUtil.isNetworkAvailable(context)) {
-                    // Exclui o item remotamente no Firestore
                     remoteRepository.excluir(item)
-                    Log.d("ItensViewModel", "Item excluído do Firestore com sucesso: ${item.descricao}")
-                } else {
-
-                    Log.d("ItensViewModel", "Sem conexão. Não foi possível excluir do Firestore.")
                 }
-
-                // Exclui o item localmente no banco de dados
                 localRepository.excluir(item) // Exclui no banco local
-                Log.d("ItensViewModel", "Item excluído localmente com sucesso: ${item.descricao}")
-
-                // Atualiza a lista de itens offline após a exclusão
                 listarItensOffline()
-
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao excluir item: ${e.message}")
             }
@@ -153,9 +114,8 @@ class ItensViewModel(
     fun excluirItemOffline(item: Item) {
         viewModelScope.launch {
             try {
-                item.isMarkedForDeletion = true // Marca o item para exclusão
+                item.isMarkedForDeletion = true
                 localRepository.atualizar(item) // Atualiza o status no banco local
-                Log.d("ItensViewModel", "Item marcado para exclusão localmente: ${item.descricao}")
                 listarItensOffline()
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao marcar item para exclusão: ${e.message}")
@@ -166,29 +126,18 @@ class ItensViewModel(
     fun atualizarItem(item: Item) {
         viewModelScope.launch {
             try {
-                // Atualiza o item remotamente no Firestore
                 remoteRepository.atualizar(item)
-                Log.d("ItensViewModel", "Item atualizado remotamente: ${item.descricao}")
-
-                // Atualiza o item localmente no banco de dados Room
-                localRepository.atualizar(item)  // Aqui, você precisa garantir que o método "atualizar" exista no ItemLocalRepository
-
-                // Atualiza a lista de itens offline após a atualização
+                localRepository.atualizar(item) // Atualiza no banco local
                 listarItensOffline()
-
             } catch (e: Exception) {
                 Log.e("ItensViewModel", "Erro ao atualizar item: ${e.message}")
             }
         }
     }
 
-    // Atualizada para listar apenas os itens que não foram sincronizados
     private fun listarItensOffline() {
         viewModelScope.launch {
-            // Lista os itens que não foram sincronizados
             val itensOffline = localRepository.listarItensNaoSincronizados()
-
-            // Atualiza a lista de itens offline
             _itens.value = itensOffline
         }
     }
